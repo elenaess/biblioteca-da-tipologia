@@ -1821,3 +1821,28 @@ button:active, .button:active, .edit-pencil:active { transform: scale(.98); }
   .site-header > .header-brand,.site-header > .header-nav { display:none; }
   .site-header .account-link > span { display:inline; }
 }
+
+/* Wordmark real da Biblioteca da Tipologia no desktop */
+.desktop-sidebar .desktop-wordmark-link {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.desktop-sidebar .desktop-wordmark-image {
+  display: block;
+  width: 100%;
+  max-width: 218px;
+  height: auto;
+  object-fit: contain;
+  filter:
+    brightness(0)
+    saturate(100%)
+    invert(93%)
+    sepia(10%)
+    saturate(412%)
+    hue-rotate(342deg)
+    brightness(101%)
+    contrast(89%);
+}
