@@ -1,0 +1,10 @@
+{
+  "name": "biblioteca-da-tipologia",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test packages/core/test/*.test.mjs",
+    "test:core": "node --test packages/core/test/*.test.mjs",
+    "build:web": "npm --prefix apps/web run build"
+  }
+}

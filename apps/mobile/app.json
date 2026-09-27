@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Biblioteca da Tipologia",
+    "slug": "biblioteca-da-tipologia",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "bibliotecadatipologia",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "android": {
+      "package": "br.org.bibliotecadatipologia",
+      "adaptiveIcon": {"foregroundImage":"./assets/icon.png","backgroundColor":"#F3EBDD"}
+    }
+  }
+}

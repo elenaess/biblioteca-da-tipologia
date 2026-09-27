@@ -1,0 +1,28 @@
+{
+  "name": "biblioteca-da-tipologia-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {"start":"expo start","android":"expo start --android","prebuild":"expo prebuild","test":"node --test test/*.test.mjs"},
+  "dependencies": {
+    "@biblioteca/core": "file:../../packages/core",
+    "@react-native-async-storage/async-storage": "latest",
+    "@react-navigation/bottom-tabs": "latest",
+    "@react-navigation/native": "latest",
+    "@react-navigation/native-stack": "latest",
+    "@supabase/supabase-js": "^2.117.2",
+    "expo": "~57.0.17",
+    "expo-linking": "latest",
+    "expo-status-bar": "latest",
+    "expo-web-browser": "latest",
+    "lucide-react-native": "latest",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "latest",
+    "react-native-screens": "latest",
+    "react-native-svg": "latest",
+    "react-native-url-polyfill": "latest",
+    "react-native-webview": "latest"
+  },
+  "devDependencies": {"@types/react":"latest","typescript":"^5.9.2"}
+}
