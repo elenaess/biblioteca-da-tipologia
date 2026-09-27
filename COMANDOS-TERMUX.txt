@@ -1,0 +1,32 @@
+Biblioteca da Tipologia — entrega 1.1.0, navegação móvel corrigida
+
+1. Baixe Biblioteca-da-Tipologia-1.1.0-corrigida.zip em Downloads.
+2. Abra o Termux e execute:
+
+pkg update && pkg install git gh unzip rsync
+termux-setup-storage
+unzip -q ~/storage/downloads/Biblioteca-da-Tipologia-1.1.0-corrigida.zip -d ~/biblioteca-corrigida
+bash ~/biblioteca-corrigida/Biblioteca-da-Tipologia/scripts/publicar-termux.sh
+
+No login do GitHub, use a conta elenaess. A ferramenta fornece um código para autorizar no navegador.
+O script envia uma atualização normal para main, sem force push. O site será publicado e a compilação Android começará pelo GitHub Actions.
+Se houver erro de permissão para workflows em uma sessão antiga, execute:
+gh auth refresh --hostname github.com --scopes workflow
+Depois execute publicar-termux.sh novamente.
+
+Veja o andamento em:
+https://github.com/elenaess/biblioteca-da-tipologia/actions
+Quando o trabalho “Build Android APK” terminar, baixe “Biblioteca-da-Tipologia-APK” em Artifacts, extraia o ZIP e instale o APK.
+Para aguardar e baixar pelo Termux:
+bash ~/biblioteca-corrigida/Biblioteca-da-Tipologia/scripts/baixar-apk-termux.sh
+
+Site GitHub Pages:
+https://elenaess.github.io/biblioteca-da-tipologia/
+
+O APK é Android ARM64, versão 1.1.0, com assinatura de desenvolvimento. Não é uma publicação na Play Store. Não foi compilado localmente nesta entrega por sua orientação.
+O leitor HTML é empacotado com o app; o acesso aos capítulos e ao progresso usa a sessão nativa existente, sem um segundo login.
+As configurações públicas do Supabase e as migrações estão incluídas. Nenhuma chave de serviço ou credencial privada acompanha o pacote.
+As migrações desta entrega já foram aplicadas ao projeto Supabase existente.
+
+Importação: Administração → Editar livro → Enviar arquivo do dispositivo. Aceita EPUB, PDF, HTML, Markdown e TXT até 25 MB. Salve a ficha depois do processamento.
+Arquivos já referenciados no Google Drive continuam no visualizador original. Para converter, baixe o original e envie na ficha. PDFs escaneados e layouts complexos permanecem no leitor PDF, sem OCR automático.

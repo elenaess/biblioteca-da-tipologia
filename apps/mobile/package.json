@@ -1,28 +1,37 @@
 {
-  "name": "biblioteca-da-tipologia-mobile",
-  "version": "1.0.0",
+  "name": "biblioteca-tipologia-mobile",
+  "version": "0.1.0",
   "private": true,
-  "main": "node_modules/expo/AppEntry.js",
-  "scripts": {"start":"expo start","android":"expo start --android","prebuild":"expo prebuild","test":"node --test test/*.test.mjs"},
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "typecheck": "tsc --noEmit",
+    "export": "expo export --platform android"
+  },
   "dependencies": {
-    "@biblioteca/core": "file:../../packages/core",
-    "@react-native-async-storage/async-storage": "latest",
-    "@react-navigation/bottom-tabs": "latest",
-    "@react-navigation/native": "latest",
-    "@react-navigation/native-stack": "latest",
-    "@supabase/supabase-js": "^2.117.2",
-    "expo": "~57.0.17",
-    "expo-linking": "latest",
-    "expo-status-bar": "latest",
-    "expo-web-browser": "latest",
-    "lucide-react-native": "latest",
+    "@config-plugins/react-native-pdf": "14.0.2",
+    "@expo/vector-icons": "^15.0.2",
+    "@supabase/supabase-js": "2.117.2",
+    "base64-arraybuffer": "1.0.2",
+    "expo": "~57.0.25",
+    "expo-image-picker": "57.0.20",
+    "expo-secure-store": "~57.0.4",
+    "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "~57.0.4",
+    "expo-web-browser": "~57.0.3",
     "react": "19.2.3",
     "react-native": "0.86.3",
-    "react-native-safe-area-context": "latest",
-    "react-native-screens": "latest",
-    "react-native-svg": "latest",
-    "react-native-url-polyfill": "latest",
-    "react-native-webview": "latest"
+    "react-native-blob-util": "0.25.1",
+    "react-native-pdf": "7.0.5",
+    "react-native-render-html": "^6.3.4",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-svg": "15.15.4",
+    "react-native-url-polyfill": "^3.0.0",
+    "react-native-webview": "13.16.1"
   },
-  "devDependencies": {"@types/react":"latest","typescript":"^5.9.2"}
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "typescript": "^5.9.0"
+  }
 }

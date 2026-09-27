@@ -1,1 +1,14 @@
-{"extends":"expo/tsconfig.base","compilerOptions":{"strict":true,"allowJs":true}}
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "../../packages/domain/src",
+    "../../packages/data/src"
+  ]
+}

@@ -1,0 +1,99 @@
+BIBLIOTECA DA TIPOLOGIA
+Site React + aplicativo React Native (Expo), com Supabase compartilhado.
+
+ESTADO DESTA ENTREGA
+O acervo inicial usa 28 referências PDF e 3 textos dos Drives fornecidos.
+Metadados ausentes não foram inventados. As capas tipográficas são provisórias.
+Site e app já apontam para o projeto ghendeqnxybayhzhsjgz, na organização
+Biblioteca da Tipologia, plano Free. O acervo, as migrações e os buckets estão
+instalados. A chave publicável fica em packages/domain/src/project-config.ts;
+as variáveis de ambiente permitem usar outro projeto durante desenvolvimento.
+O provedor Google foi habilitado pela proprietária e sua configuração foi preservada.
+O editor de demonstração exporta HTML localmente; não publica na biblioteca.
+Exportar o bundle não gera APK nem valida um dispositivo. O workflow do GitHub gera APK com assinatura de desenvolvimento; não é uma versão
+para publicação na Play Store. Login e gravação dependem da configuração abaixo.
+
+INTERFACE 1.1.0
+Marca transparente: BIBLIOTECA / DA TIPOLOGIA no computador e símbolo no celular.
+Menu marrom no desktop, header no celular, B inicial maior e subtítulo distribuído.
+Rodapé: Biblioteca da Tipologia (CC) - 2026 | Alguns direitos reservados.
+Membros podem enviar fotos JPEG, PNG ou WebP de até 3 MB em Minha conta.
+Cada membro só pode alterar sua própria foto; o bucket de fotos é privado.
+Favicons com o símbolo, navegação Leituras e Google em SVG no login web e nativo.
+Transições de 80 a 100 ms respeitam a preferência de reduzir movimento.
+Administradores veem atalhos de lápis para editar livros, artigos e leituras.
+
+DESENVOLVIMENTO
+Use Node 24. Na raiz: npm ci; npm run dev.
+Validação: npm test; npm run typecheck; npm run build.
+App: npm run reader:bundle; npm ci --prefix apps/mobile; npm run mobile:start.
+O leitor PDF nativo exige development build ou APK; não funciona no Expo Go.
+
+BACKEND
+1. O projeto de produção já existe: https://ghendeqnxybayhzhsjgz.supabase.co.
+   Os passos 2 e 3 já foram executados. São necessários apenas em outro projeto.
+2. Aplique os SQL de supabase/migrations em ordem de nome em um projeto novo.
+   As migrações criam tabelas, papéis, políticas RLS e buckets de imagens e PDFs.
+3. Rode npm run seed:prepare e execute supabase/seed.sql uma vez.
+   A carga preserva edições existentes quando reexecutada.
+4. Copie apps/web/.env.example para apps/web/.env e preencha URL e chave PUBLICÁVEL.
+   Não use service_role, sb_secret ou segredo OAuth no site ou no app.
+5. Configure Google em Authentication > Providers no Supabase usando um cliente
+   OAuth web criado no Google Cloud. O segredo fica exclusivamente no Supabase.
+   URI autorizado do Google: https://ghendeqnxybayhzhsjgz.supabase.co/auth/v1/callback
+6. Nas URLs de redirecionamento do Supabase, autorize
+   https://biblioteca-da-tipologia.etheeraal.chatgpt.site/,
+   https://elenaess.github.io/biblioteca-da-tipologia/ e
+   bibliotecadatipologia://auth/callback. Use a primeira também como Site URL.
+   Adicione http://localhost:4173/ apenas para desenvolvimento local.
+   Não use curingas amplos em produção.
+7. Ative apenas o provedor Google, conforme o fluxo da biblioteca.
+8. Entre com ehrenren629@gmail.com pelo Google. A função claim_owner verifica
+   identidade Google e email confirmado no servidor antes de conceder propriedade.
+   Depois, Administração permite nomear outros usuários que já entraram uma vez.
+
+ACERVO E ARQUIVOS
+Administradores enviam EPUB, PDF, HTML, Markdown e TXT (até 25 MB) ou cadastram links do Drive.
+A ficha contém capa, autores, tradutores, publicação, data da tradução, edição,
+idioma, descrição, temas e escolas. Salve a ficha após enviar seus arquivos.
+Rascunhos são acessíveis apenas à curadoria; publicar libera ficha e leitura.
+PDFs usam bucket privado e URLs de leitura temporárias de 5 minutos. Um link já
+emitido continua válido até expirar; recolher o livro bloqueia novas URLs.
+Uploads ainda não vinculados e PDFs substituídos permanecem privados no bucket;
+podem ser removidos posteriormente pelo painel Storage, após conferir os vínculos.
+Capas e imagens editoriais usam bucket privado. Apenas a curadoria e os leitores
+de fichas/textos publicados podem gerar URLs temporárias de acesso (1 hora).
+Links já emitidos expiram no prazo; recolher o conteúdo bloqueia novas URLs.
+Arquivos no Drive continuam sujeitos às permissões da conta de origem: a biblioteca
+não torna esses arquivos públicos nem contorna pedidos de acesso do Google.
+
+TEXTOS
+Editor com negrito, itálico, sublinhado, alinhamento, justificar, listas, títulos,
+links, tabelas e imagens no meio do texto. As publicações são higienizadas na web.
+Imagens importadas dos Docs ficam em apps/web/public/source-images, compartilhadas
+com o bundle nativo. O catálogo e as imagens originais acompanham esta entrega.
+
+GITHUB E HOSPEDAGEM
+Repositório: https://github.com/elenaess/biblioteca-da-tipologia
+Site: https://elenaess.github.io/biblioteca-da-tipologia/
+O fluxo ci verifica web e app. Os workflows publicam o site e geram APK em main.
+Para Pages, habilite GitHub Actions em Settings > Pages; configure as variáveis
+VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY no repositório e execute
+manualmente o workflow Publicar site no GitHub Pages.
+O arquivo .openai/hosting.json pertence à prévia hospedada desta biblioteca;
+GitHub Pages não depende dele. O build web usa caminhos relativos e rotas hash.
+
+ANDROID / IOS
+Copie apps/mobile/.env.example para apps/mobile/.env com o mesmo Supabase e URL web.
+No diretório apps/mobile, use a CLI EAS autenticada na sua conta para configurar
+o projeto e gerar o build preview Android (APK) ou production (AAB).
+O painel administrativo abre a versão web responsiva, que exige login próprio.
+Também é possível gerar um APK local: npx expo prebuild --platform android,
+seguido de ./gradlew app:assembleRelease no diretório android, com JDK 17,
+Android SDK 36 e NDK 27.1.12297006 instalados. A configuração gerada usa chave de
+desenvolvimento; substitua por credenciais próprias antes da distribuição final.
+Builds iOS exigem credenciais Apple. Publicação nas lojas e validação final
+dependem das contas de distribuição e de teste em dispositivo real.
+
+LEITOR INTERNO 1.1.0
+Importação de EPUB, HTML, Markdown, TXT e PDF digital básico pela ficha administrativa. Capítulos e índice são armazenados no Supabase; o progresso é privado por conta. Consulte COMANDOS-TERMUX.txt para enviar ao GitHub e gerar o APK no Actions.
