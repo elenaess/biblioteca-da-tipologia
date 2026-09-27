@@ -5,6 +5,8 @@ import type {
   ReaderFormat,
 } from "../../../../packages/domain/src/reader";
 import { sanitizeReaderHtml } from "./sanitizer";
+import { shouldSplitSemanticGroup } from "./segment";
+
 export const escapeHtml = (s: string) =>
   s.replace(
     /[&<>"']/g,
@@ -13,6 +15,7 @@ export const escapeHtml = (s: string) =>
         c
       ]!,
   );
+
 export function tocTree(items: TocItem[]) {
   const roots: TocItem[] = [],
     stack: TocItem[] = [];
@@ -24,6 +27,7 @@ export function tocTree(items: TocItem[]) {
   }
   return roots;
 }
+
 export function normalizeHtml(
   html: string,
   title: string,
@@ -35,43 +39,50 @@ export function normalizeHtml(
   );
   const used = new Set<string>();
   let anchor = 0;
+
   for (const el of doc.body.querySelectorAll("[id],h1,h2,h3,h4,h5,h6")) {
     let id = el.id || `section-${++anchor}`;
     while (used.has(id)) id += "-2";
     el.id = id;
     used.add(id);
   }
-  // Flatten only structural containers, retaining semantic blocks such as tables and quotes.
-  for (const el of [
-    ...doc.body.querySelectorAll("article,section,div"),
-  ].reverse())
+
+  // Flatten structural wrappers while retaining semantic blocks such as lists,
+  // tables, blockquotes, headings and paragraphs.
+  for (const el of [...doc.body.querySelectorAll("article,section,div")].reverse())
     el.replaceWith(...el.childNodes);
+
   const groups: Node[][] = [];
   let group: Node[] = [],
     size = 0;
   const split = () => {
-    if (group.length) {
-      groups.push(group);
-      group = [];
-      size = 0;
-    }
+    const meaningful = group.some((node) => !!node.textContent?.trim());
+    if (meaningful) groups.push(group);
+    group = [];
+    size = 0;
   };
+
   for (const node of [...doc.body.childNodes]) {
-    if (node.nodeType === 3 && !node.textContent?.trim()) continue;
-    const el = node as Element;
-    if (group.length && (el.tagName === "H1" || size > 22000)) split();
+    if (!node.textContent?.trim()) continue;
+    const el = node.nodeType === 1 ? (node as Element) : null;
+    const nextSize = (node.textContent || "").trim().length;
+    if (
+      group.length &&
+      shouldSplitSemanticGroup(size, el?.tagName || "#text", nextSize)
+    )
+      split();
     group.push(node);
-    size += (node.textContent || "").length;
+    size += nextSize;
   }
   split();
+
   const toc: TocItem[] = [];
-  const chapters: ReaderChapter[] = groups.map((nodes, i) => {
-    const section = doc.createElement("section");
-    section.append(...nodes);
-    const id = `chapter-${String(i + 1).padStart(4, "0")}`;
-    section
-      .querySelectorAll("h1,h2,h3,h4,h5,h6")
-      .forEach((el) =>
+  const chapters: ReaderChapter[] = groups
+    .map((nodes, i) => {
+      const section = doc.createElement("section");
+      section.append(...nodes);
+      const id = `chapter-${String(i + 1).padStart(4, "0")}`;
+      section.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach((el) =>
         toc.push({
           id: `${id}-${el.id}`,
           title: el.textContent?.trim() || "Seção",
@@ -80,18 +91,20 @@ export function normalizeHtml(
           anchor: el.id,
         }),
       );
-    const text = section.textContent || "";
-    return {
-      id,
-      title:
-        section.querySelector("h1,h2,h3,h4,h5,h6")?.textContent ||
-        (i === 0 ? title : `Continuação ${i + 1}`),
-      order: i,
-      html: section.innerHTML,
-      plainText: text,
-      textLength: text.length,
-    };
-  });
+      const text = (section.textContent || "").trim();
+      return {
+        id,
+        title:
+          section.querySelector("h1,h2,h3,h4,h5,h6")?.textContent?.trim() ||
+          (i === 0 ? title : `Continuação ${i + 1}`),
+        order: i,
+        html: section.innerHTML,
+        plainText: text,
+        textLength: text.length,
+      };
+    })
+    .filter((chapter) => chapter.textLength > 0);
+
   const ids = new Map<string, string>();
   for (const c of chapters) {
     const d = new DOMParser().parseFromString(c.html, "text/html");
@@ -108,5 +121,6 @@ export function normalizeHtml(
     }
     c.html = d.body.innerHTML;
   }
+
   return { metadata: { title }, format, toc: tocTree(toc), chapters };
 }

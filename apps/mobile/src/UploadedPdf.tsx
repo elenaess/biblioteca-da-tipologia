@@ -1,14 +1,10 @@
 import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Linking,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
 import Pdf from "react-native-pdf";
 import { repository } from "./client";
 import type { Book } from "../../../packages/domain/src";
+import OrbitLoader from "./OrbitLoader";
+
 export default function UploadedPdf({ book }: { book: Book }) {
   const [url, setUrl] = useState(""),
     [error, setError] = useState(""),
@@ -30,6 +26,7 @@ export default function UploadedPdf({ book }: { book: Book }) {
       alive = false;
     };
   }, [book.file_path]);
+
   async function external() {
     try {
       if (repository) await Linking.openURL(await repository.pdfUrl(book));
@@ -37,6 +34,7 @@ export default function UploadedPdf({ book }: { book: Book }) {
       setError("Não foi possível abrir o arquivo.");
     }
   }
+
   return (
     <View style={{ flex: 1 }}>
       <View
@@ -46,13 +44,18 @@ export default function UploadedPdf({ book }: { book: Book }) {
           justifyContent: "space-between",
         }}
       >
-        <Text style={{ color: "#6e5b42" }}>{page || "Carregando PDF…"}</Text>
+        <Text style={{ color: "#6e5b42" }}>{page || "Visualizador PDF"}</Text>
         <Pressable onPress={() => void external()}>
           <Text style={{ color: "#914732" }}>Abrir arquivo ↗</Text>
         </Pressable>
       </View>
       {error ? (
-        <Text style={{ padding: 20, color: "#963d2c" }}>{error}</Text>
+        <View style={{ padding: 20, gap: 12 }}>
+          <Text style={{ color: "#963d2c" }}>{error}</Text>
+          <Pressable onPress={() => void external()}>
+            <Text style={{ color: "#914732" }}>Tentar no visualizador original ↗</Text>
+          </Pressable>
+        </View>
       ) : url ? (
         <Pdf
           source={{ uri: url, cache: false }}
@@ -61,12 +64,12 @@ export default function UploadedPdf({ book }: { book: Book }) {
           onPageChanged={(page, total) => setPage(page + " / " + total)}
           onError={() =>
             setError(
-              "O PDF não pôde ser exibido. Use “Abrir arquivo” ou reabra o leitor.",
+              "O PDF não pôde ser exibido aqui. Você ainda pode abrir o arquivo original.",
             )
           }
         />
       ) : (
-        <ActivityIndicator color="#914732" />
+        <OrbitLoader label="Abrindo PDF…" />
       )}
     </View>
   );

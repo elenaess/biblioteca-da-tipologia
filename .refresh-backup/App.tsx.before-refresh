@@ -44,9 +44,6 @@ import * as SecureStore from "expo-secure-store";
 import SemanticReader from "./src/SemanticReader";
 import { MotionProvider, MotionPressable as Pressable, ScreenTransition } from "./src/Motion";
 import GoogleMark from "./src/GoogleMark";
-import { signInWithGoogleNative, signInWithGoogleBrowserFallback } from "./src/auth/google";
-import ResilientRemoteImage from "./src/ResilientImage";
-import { rewritePublicationHtml } from "./src/images-core";
 WebBrowser.maybeCompleteAuthSession();
 const colors = [
   "#78513e",
@@ -187,28 +184,33 @@ function AppContent() {
       return;
     }
     try {
-      await signInWithGoogleNative();
+      const redirectTo = projectConfig.mobileRedirectUrl;
+      const { data, error } = await client.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo, skipBrowserRedirect: true },
+      });
+      if (error) throw error;
+      if (!data.url) throw Error("Não foi possível abrir o login.");
+      const result = await WebBrowser.openAuthSessionAsync(
+        data.url,
+        redirectTo,
+      );
+      if (result.type === "success") {
+        const url = new URL(result.url);
+        if (url.protocol + "//" + url.hostname + url.pathname !== redirectTo)
+          throw Error("Retorno de login inválido.");
+        const code = url.searchParams.get("code");
+        if (!code)
+          throw Error(
+            url.searchParams.get("error_description") || "Login cancelado.",
+          );
+        const { error } = await client.auth.exchangeCodeForSession(code);
+        if (error) throw error;
+      }
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Não foi possível entrar.";
       Alert.alert(
-        "Login Google",
-        message,
-        [
-          { text: "Cancelar", style: "cancel" },
-          {
-            text: "Usar navegador",
-            onPress: () => {
-              void signInWithGoogleBrowserFallback().catch((fallbackError) =>
-                Alert.alert(
-                  "Login",
-                  fallbackError instanceof Error
-                    ? fallbackError.message
-                    : "Não foi possível entrar.",
-                ),
-              );
-            },
-          },
-        ],
+        "Login",
+        e instanceof Error ? e.message : "Não foi possível entrar.",
       );
     }
   }
@@ -261,8 +263,8 @@ function AppContent() {
       ]}
     >
       {b.cover_url ? (
-        <ResilientRemoteImage
-          uri={b.cover_url}
+        <Image
+          source={{ uri: b.cover_url }}
           style={StyleSheet.absoluteFill}
           resizeMode="cover"
         />
@@ -284,21 +286,18 @@ function AppContent() {
       )}
     </View>
   );
-  const publicationImageFallback = useMemo(
-    () => Image.resolveAssetSource(require("./assets/image-placeholder.png")).uri,
-    [],
-  );
   const richHtml = useMemo(
     () =>
-      rewritePublicationHtml(
-        publication?.html || "",
-        (key) => {
+      publication?.html.replace(
+        /src="\.\/?source-images\/([^"]+)"/g,
+        (_match, key) => {
           const asset = imageAssets[key];
-          return asset ? Image.resolveAssetSource(asset).uri : undefined;
+          return asset
+            ? 'src="' + Image.resolveAssetSource(asset).uri + '"'
+            : 'src=""';
         },
-        publicationImageFallback,
-      ),
-    [publication, publicationImageFallback],
+      ) || "",
+    [publication],
   );
   const tagsStyles = {
     body: { color: "#352c25", fontSize: 18, lineHeight: 29 },
@@ -506,9 +505,8 @@ function AppContent() {
               {error && <Text style={s.error}>{error}</Text>}
             </>
           }
-          renderItem={({ item, index }) => (
+          renderItem={({ item }) => (
             <Pressable
-              entryDelay={index < 6 ? index * 20 : undefined}
               style={s.bookCard}
               onPress={() => setBook(item)}
               accessibilityRole="button"

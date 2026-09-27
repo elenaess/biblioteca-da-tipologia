@@ -1,11 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  View,
-  Text,
-  Pressable,
-  Linking,
-} from "react-native";
+import { View, Text, Pressable, Linking } from "react-native";
 import { WebView } from "react-native-webview";
 import * as SecureStore from "expo-secure-store";
 import { repository, client } from "./client";
@@ -15,6 +9,8 @@ import { driveUrl } from "../../../packages/domain/src";
 import type { ReadingPosition } from "../../../packages/domain/src/reader";
 import documentTemplate from "./generated/reader-document.json";
 import UploadedPdf from "./UploadedPdf";
+import OrbitLoader from "./OrbitLoader";
+
 export default function SemanticReader({
   book,
   onClose,
@@ -23,12 +19,14 @@ export default function SemanticReader({
   onClose: () => void;
 }) {
   const [ready, setReady] = useState<boolean | null>(null),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [loadingChapter, setLoadingChapter] = useState(false);
   const web = useRef<WebView>(null);
   const r = useMemo(
     () => (repository ? new ReaderRepository(repository.client) : null),
     [],
   );
+
   useEffect(() => {
     let alive = true;
     void r
@@ -39,13 +37,14 @@ export default function SemanticReader({
       .catch(() => {
         if (alive) {
           setReady(false);
-          setError("Não foi possível carregar a leitura.");
+          setError("Não foi possível carregar a leitura por texto.");
         }
       });
     return () => {
       alive = false;
     };
-  }, [book.id]);
+  }, [book.id, r]);
+
   const original = async () => {
     await Linking.openURL(
       book.source_type === "drive"
@@ -53,6 +52,7 @@ export default function SemanticReader({
         : await repository!.pdfUrl(book),
     );
   };
+
   const html = useMemo(
     () =>
       documentTemplate.replace(
@@ -66,12 +66,16 @@ export default function SemanticReader({
       ),
     [book.id, book.title],
   );
+
   async function receive(raw: string) {
     let id: number | undefined;
+    let chapterRequest = false;
     try {
       const message = JSON.parse(raw);
       id = message.id;
       if (typeof id !== "number" || !r) return;
+      chapterRequest = message.method === "chapter";
+      if (chapterRequest) setLoadingChapter(true);
       let value: unknown = null;
       const {
           data: { session },
@@ -131,17 +135,22 @@ export default function SemanticReader({
             }) +
             ");true;",
         );
+    } finally {
+      if (chapterRequest) setLoadingChapter(false);
     }
   }
-  if (ready === null)
-    return <ActivityIndicator style={{ flex: 1 }} color="#996c43" />;
+
+  if (ready === null) return <OrbitLoader label="Preparando leitura…" />;
+
   if (!ready)
     return book.source_type === "upload" && book.file_path?.endsWith(".pdf") ? (
       <UploadedPdf book={book} />
     ) : (
       <View style={{ flex: 1 }}>
         <Pressable onPress={() => void original()} style={{ padding: 16 }}>
-          <Text>{error || "Abrir arquivo original"} ↗</Text>
+          <Text style={{ color: "#914732" }}>
+            {error || "Leitura por texto indisponível. Abrir arquivo original"} ↗
+          </Text>
         </Pressable>
         {book.source_type === "drive" && (
           <WebView
@@ -156,29 +165,33 @@ export default function SemanticReader({
         )}
       </View>
     );
+
   return (
-    <WebView
-      ref={web}
-      source={{ html, baseUrl: "https://reader.biblioteca.invalid/" }}
-      style={{ flex: 1, backgroundColor: "#f5efe4" }}
-      javaScriptEnabled
-      domStorageEnabled
-      originWhitelist={["https://reader.biblioteca.invalid", "about:blank"]}
-      allowFileAccess={false}
-      allowFileAccessFromFileURLs={false}
-      allowUniversalAccessFromFileURLs={false}
-      setSupportMultipleWindows={false}
-      onMessage={(e) => void receive(e.nativeEvent.data)}
-      onShouldStartLoadWithRequest={(req) => {
-        if (
-          req.url === "about:blank" ||
-          req.url.startsWith("https://reader.biblioteca.invalid/")
-        )
-          return true;
-        if (/^https:\/\//.test(req.url)) void Linking.openURL(req.url);
-        return false;
-      }}
-      onError={() => setError("Reabra o leitor para tentar novamente.")}
-    />
+    <View style={{ flex: 1, backgroundColor: "#f5efe4" }}>
+      <WebView
+        ref={web}
+        source={{ html, baseUrl: "https://reader.biblioteca.invalid/" }}
+        style={{ flex: 1, backgroundColor: "#f5efe4" }}
+        javaScriptEnabled
+        domStorageEnabled
+        originWhitelist={["https://reader.biblioteca.invalid", "about:blank"]}
+        allowFileAccess={false}
+        allowFileAccessFromFileURLs={false}
+        allowUniversalAccessFromFileURLs={false}
+        setSupportMultipleWindows={false}
+        onMessage={(e) => void receive(e.nativeEvent.data)}
+        onShouldStartLoadWithRequest={(req) => {
+          if (
+            req.url === "about:blank" ||
+            req.url.startsWith("https://reader.biblioteca.invalid/")
+          )
+            return true;
+          if (/^https:\/\//.test(req.url)) void Linking.openURL(req.url);
+          return false;
+        }}
+        onError={() => setError("Reabra o leitor para tentar novamente.")}
+      />
+      {loadingChapter ? <OrbitLoader overlay label="Virando página…" /> : null}
+    </View>
   );
 }

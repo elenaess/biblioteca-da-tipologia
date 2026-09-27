@@ -1,32 +1,30 @@
-Biblioteca da Tipologia — entrega 1.1.0, navegação móvel corrigida
+BIBLIOTECA DA TIPOLOGIA — REFRESH 27/09/2026
 
-1. Baixe Biblioteca-da-Tipologia-1.1.0-corrigida.zip em Downloads.
-2. Abra o Termux e execute:
+1) Deixe biblioteca-da-tipologia-refresh-termux.zip em Downloads.
 
-pkg update && pkg install git gh unzip rsync
+2) Antes de aplicar, o repositório deve estar limpo (`git status --short` sem saída).
+
+No Termux:
+
+pkg update -y
+pkg install -y git gh nodejs unzip rsync
 termux-setup-storage
-unzip -q ~/storage/downloads/Biblioteca-da-Tipologia-1.1.0-corrigida.zip -d ~/biblioteca-corrigida
-bash ~/biblioteca-corrigida/Biblioteca-da-Tipologia/scripts/publicar-termux.sh
+rm -rf ~/bdt-refresh
+mkdir -p ~/bdt-refresh
+unzip -q ~/storage/downloads/biblioteca-da-tipologia-refresh-termux.zip -d ~/bdt-refresh
+bash ~/bdt-refresh/biblioteca-da-tipologia-refresh-termux/apply-refresh.sh ~/biblioteca-da-tipologia
 
-No login do GitHub, use a conta elenaess. A ferramenta fornece um código para autorizar no navegador.
-O script envia uma atualização normal para main, sem force push. O site será publicado e a compilação Android começará pelo GitHub Actions.
-Se houver erro de permissão para workflows em uma sessão antiga, execute:
-gh auth refresh --hostname github.com --scopes workflow
-Depois execute publicar-termux.sh novamente.
+3) Configure o Client ID WEB público usado pelo Google/Supabase:
 
-Veja o andamento em:
-https://github.com/elenaess/biblioteca-da-tipologia/actions
-Quando o trabalho “Build Android APK” terminar, baixe “Biblioteca-da-Tipologia-APK” em Artifacts, extraia o ZIP e instale o APK.
-Para aguardar e baixar pelo Termux:
-bash ~/biblioteca-corrigida/Biblioteca-da-Tipologia/scripts/baixar-apk-termux.sh
+cd ~/biblioteca-da-tipologia
+gh variable set GOOGLE_WEB_CLIENT_ID --body 'SEU_WEB_CLIENT_ID.apps.googleusercontent.com' --repo elenaess/biblioteca-da-tipologia
 
-Site GitHub Pages:
-https://elenaess.github.io/biblioteca-da-tipologia/
+4) Envie:
 
-O APK é Android ARM64, versão 1.1.0, com assinatura de desenvolvimento. Não é uma publicação na Play Store. Não foi compilado localmente nesta entrega por sua orientação.
-O leitor HTML é empacotado com o app; o acesso aos capítulos e ao progresso usa a sessão nativa existente, sem um segundo login.
-As configurações públicas do Supabase e as migrações estão incluídas. Nenhuma chave de serviço ou credencial privada acompanha o pacote.
-As migrações desta entrega já foram aplicadas ao projeto Supabase existente.
+git add -A
+git commit -m 'fix: refresh reader native auth and mobile UX'
+git push origin main
 
-Importação: Administração → Editar livro → Enviar arquivo do dispositivo. Aceita EPUB, PDF, HTML, Markdown e TXT até 25 MB. Salve a ficha depois do processamento.
-Arquivos já referenciados no Google Drive continuam no visualizador original. Para converter, baixe o original e envie na ficha. PDFs escaneados e layouts complexos permanecem no leitor PDF, sem OCR automático.
+5) Abra o Actions. O job imprime o SHA-1 do APK final. Cadastre esse SHA-1 + package br.org.bibliotecadatipologia em um OAuth Client Android no Google Cloud e rode o workflow novamente.
+
+Detalhes: PATCH-TERMUX.md

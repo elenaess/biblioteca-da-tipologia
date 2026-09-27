@@ -36,12 +36,24 @@ jobs:
         env:
           CI: '1'
           EXPO_OFFLINE: '1'
+          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+      - name: Keep Android signing key stable between workflow runs
+        uses: actions/cache@v4
+        with:
+          path: apps/mobile/android/app/debug.keystore
+          key: biblioteca-android-debug-keystore-v1
       - name: Build standalone release APK
         run: ./gradlew app:assembleRelease --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a -Pexpo.useLegacyPackaging=true
         working-directory: apps/mobile/android
         env:
           NODE_ENV: production
           EXPO_OFFLINE: '1'
+          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+      - name: Print final APK signing certificate for Google OAuth
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk | grep -E 'Signer #1 certificate SHA-1 digest|Signer #1 certificate DN' || true
+        working-directory: apps/mobile/android
       - name: Prepare APK
         run: cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk Biblioteca-da-Tipologia-1.1.0-arm64.apk
       - uses: actions/upload-artifact@v4

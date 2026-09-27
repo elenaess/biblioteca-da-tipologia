@@ -9,12 +9,12 @@
     ],
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "icon": "./assets/brand-symbol.png",
+    "icon": "./assets/app-icon.png",
     "android": {
       "package": "br.org.bibliotecadatipologia",
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/brand-symbol.png",
+        "foregroundImage": "./assets/app-icon-foreground.png",
         "backgroundColor": "#f4eee4"
       }
     },

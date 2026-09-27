@@ -1,7 +1,13 @@
-import { getDocument, GlobalWorkerOptions, OPS } from "pdfjs-dist";
+import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { normalizeHtml, escapeHtml } from "./normalize";
+import { hasAcceptablePdfLayout, hasSufficientPdfTextLayer } from "./segment";
+
 GlobalWorkerOptions.workerSrc = workerUrl;
+
+const majorHeading = /^(cap[íi]tulo\s+[\divxlc]+\b|introdu[çc][ãa]o$|conclus[ãa]o$|pref[áa]cio$|pr[oó]logo$|ep[íi]logo$)/i;
+const numberedHeading = /^\d+(?:\.\d+){0,4}[.)]?\s+\S/;
+
 export async function parsePdf(
   bytes: Uint8Array,
   title: string,
@@ -12,10 +18,13 @@ export async function parsePdf(
   try {
     if (pdf.numPages > 700)
       throw Error("Este PDF é extenso. Use o visualizador original.");
+
     let html = "",
-      usable = 0,
-      empty = 0,
-      hasImages = false;
+      usablePages = 0,
+      lowTextPages = 0,
+      totalTextCharacters = 0,
+      complexPages = 0;
+
     for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
       progress(`Lendo página ${pageNo} de ${pdf.numPages}…`);
       const page = await pdf.getPage(pageNo),
@@ -24,24 +33,25 @@ export async function parsePdf(
         (x): x is import("pdfjs-dist/types/src/display/api").TextItem =>
           "str" in x && !!x.str.trim(),
       );
-      const ops = await page.getOperatorList();
-      if (
-        ops.fnArray.some(
-          (op) =>
-            op === OPS.paintImageXObject || op === OPS.paintInlineImageXObject,
-        )
-      )
-        hasImages = true;
-      if (items.reduce((n, x) => n + x.str.length, 0) < 40) {
-        empty++;
+      const pageCharacters = items.reduce((n, x) => n + x.str.length, 0);
+      totalTextCharacters += pageCharacters;
+
+      // Images are deliberately NOT treated as a parser failure. A digital PDF can
+      // contain covers, diagrams or illustrations and still have a perfectly usable
+      // text layer for the semantic reader.
+      if (pageCharacters < 40) {
+        lowTextPages++;
+        page.cleanup();
         continue;
       }
-      usable++;
+      usablePages++;
+
       const sizes = items
           .map((x) => Math.abs(x.transform[3]) || x.height)
           .sort((a, b) => a - b),
         base = sizes[Math.floor(sizes.length / 2)] || 12;
       const lines: { y: number; items: typeof items }[] = [];
+
       for (const item of items) {
         const y = item.transform[5];
         let line = lines.find((l) => Math.abs(l.y - y) < base * 0.3);
@@ -52,6 +62,7 @@ export async function parsePdf(
         line.items.push(item);
       }
       lines.sort((a, b) => b.y - a.y);
+
       let suspicious = 0;
       for (const line of lines) {
         line.items.sort((a, b) => a.transform[4] - b.transform[4]);
@@ -64,36 +75,34 @@ export async function parsePdf(
           )
             suspicious++;
       }
-      if (suspicious > 2)
-        throw Error(
-          "Este PDF possui diagramação complexa. Use o visualizador original.",
-        );
+      if (suspicious > 2) complexPages++;
+
       let paragraph = "";
       const flush = () => {
-        if (paragraph) {
-          html += "<p>" + paragraph.trim() + "</p>";
-          paragraph = "";
-        }
+        const value = paragraph.trim();
+        if (value) html += "<p>" + value + "</p>";
+        paragraph = "";
       };
+
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i],
           raw = line.items
             .map((x) => x.str)
             .join(" ")
+            .replace(/\s+/g, " ")
             .trim(),
           size = Math.max(
             ...line.items.map((x) => Math.abs(x.transform[3]) || x.height),
-          );
-        const gap = i ? lines[i - 1].y - line.y : base * 3;
-        const obvious =
-          /^(cap[íi]tulo\s+[\divxlc]+\b|introdu[çc][ãa]o$|conclus[ãa]o$|\d+(\.\d+)*[.)]?\s+\S)/i.test(
-            raw,
-          );
-        const heading =
-          obvious &&
-          raw.length < 140 &&
-          ((size > base * 1.2 && gap > base * 1.3) ||
-            /^cap[íi]tulo/i.test(raw));
+          ),
+          gap = i ? lines[i - 1].y - line.y : base * 3,
+          patternHeading = majorHeading.test(raw) || numberedHeading.test(raw),
+          typographicHeading =
+            raw.length > 0 &&
+            raw.length < 140 &&
+            size >= base * 1.32 &&
+            gap >= base * 1.15,
+          heading = raw.length < 140 && (patternHeading || typographicHeading);
+
         let text = "",
           lastEnd = 0;
         for (const item of line.items) {
@@ -103,7 +112,7 @@ export async function parsePdf(
             : null;
           const name = family + " " + (font?.name || item.fontName);
           let part = escapeHtml(item.str);
-          if (/bold|black|heavy/i.test(name))
+          if (/bold|black|heavy|semibold|demi/i.test(name))
             part = "<strong>" + part + "</strong>";
           if (/italic|oblique/i.test(name)) part = "<em>" + part + "</em>";
           if (
@@ -116,9 +125,11 @@ export async function parsePdf(
           text += part;
           lastEnd = item.transform[4] + item.width;
         }
+
         if (heading) {
           flush();
-          html += `<${/^cap[íi]tulo/i.test(raw) ? "h1" : "h2"}>${text}</${/^cap[íi]tulo/i.test(raw) ? "h1" : "h2"}>`;
+          const tag = majorHeading.test(raw) ? "h1" : "h2";
+          html += `<${tag}>${text}</${tag}>`;
         } else {
           if (gap > base * 1.8) flush();
           paragraph += (paragraph ? " " : "") + text;
@@ -128,15 +139,30 @@ export async function parsePdf(
       page.cleanup();
       await new Promise((r) => setTimeout(r, 0));
     }
-    if (!usable || empty > pdf.numPages * 0.4)
+
+    if (
+      !hasSufficientPdfTextLayer(
+        pdf.numPages,
+        usablePages,
+        lowTextPages,
+        totalTextCharacters,
+      )
+    )
       throw Error(
-        "PDF detectado como documento digitalizado. Continue pelo visualizador de PDF.",
+        "PDF detectado como documento digitalizado ou sem camada de texto suficiente. Continue pelo visualizador de PDF.",
       );
-    if (hasImages)
+
+    if (!hasAcceptablePdfLayout(pdf.numPages, complexPages))
       throw Error(
-        "Este PDF contém imagens ou páginas escaneadas. Use o visualizador original para preservar a diagramação.",
+        "Este PDF usa diagramação complexa em muitas páginas. Continue pelo visualizador original para preservar a ordem visual.",
       );
+
     const result = normalizeHtml(html, title, "pdf");
+    if (!result.chapters.length || !result.chapters.some((c) => c.textLength > 80))
+      throw Error(
+        "Não foi possível montar uma leitura por texto confiável. Continue pelo visualizador de PDF.",
+      );
+
     const meta = await pdf.getMetadata();
     const info = meta.info as { Title?: string; Author?: string };
     result.metadata = { title: info.Title || title, author: info.Author };
