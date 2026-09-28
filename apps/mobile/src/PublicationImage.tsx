@@ -99,7 +99,9 @@ export default function PublicationImage({
     ),
   );
 
-  const imageStyle = { width, height };
+  const imageStyle = inlineHint
+    ? [s.inlineImage, { width, height }]
+    : { width, height };
 
   const child = localAsset ? (
     <Image source={localAsset} style={imageStyle} resizeMode="contain" />
@@ -142,4 +144,7 @@ const s = StyleSheet.create({
   center: { alignItems: "center" },
   left: { alignItems: "flex-start" },
   right: { alignItems: "flex-end" },
+  inlineImage: {
+    marginVertical: 0,
+  },
 });
