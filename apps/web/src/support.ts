@@ -52,6 +52,5 @@ export async function createSupportIntent(amount: SupportAmount, signal?: AbortS
 }
 
 export function stripePublishableKey(): string {
-  const meta = import.meta as ImportMeta & { env?: Record<string, string | undefined> };
-  return meta.env?.VITE_STRIPE_PUBLISHABLE_KEY?.trim() || "";
+  return import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.trim() || "";
 }

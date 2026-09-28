@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe, type StripeElementsOptions } from "@stripe/stripe-js";
-import { ArrowUpRight, Coffee, Heart, LoaderCircle } from "lucide-react";
+import { ArrowUpRight, Coffee, LoaderCircle } from "lucide-react";
 import SupportPaymentForm from "../components/SupportPaymentForm";
 import { useLocale } from "../i18n/LocaleContext";
 import {
@@ -99,7 +99,6 @@ export default function Support() {
   return (
     <section className="support-page">
       <div className="support-hero">
-        <div className="support-icon"><Heart size={25} strokeWidth={1.8} /></div>
         <div>
           <div className="eyebrow">{t("support.eyebrow")}</div>
           <h1>{t("support.title")}</h1>

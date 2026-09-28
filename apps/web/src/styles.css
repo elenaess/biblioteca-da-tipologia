@@ -2159,3 +2159,14 @@ button:active, .button:active, .edit-pencil:active { transform: scale(.98); }
   }
 }
 
+
+
+/* BDT_SUPPORT_HEADER_CLEAN_V12 */
+.support-hero {
+  display: block;
+}
+@media (max-width: 620px) {
+  .support-hero {
+    display: block;
+  }
+}
