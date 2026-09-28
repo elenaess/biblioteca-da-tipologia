@@ -1,3 +1,20 @@
+type Align = "left" | "center" | "right";
+
+const TINY_MAX_PX = 64;
+const CACHE_LIMIT = 8;
+const processedCache = new Map<string, string>();
+
+function attrValue(tag: string, name: string): string | null {
+  const match = tag.match(new RegExp(`\\b${name}\\s*=\\s*(['"])(.*?)\\1`, "i"));
+  return match?.[2] ?? null;
+}
+
+function setAttr(tag: string, name: string, value: string) {
+  const pattern = new RegExp(`\\b${name}\\s*=\\s*(['"])(.*?)\\1`, "i");
+  if (pattern.test(tag)) return tag.replace(pattern, `${name}="${value}"`);
+  return tag.replace(/<img\b/i, `<img ${name}="${value}"`);
+}
+
 function parsePx(style: string, property: string): string | null {
   const match = style.match(
     new RegExp(`(?:^|;)\\s*${property}\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)px\\b`, "i"),
@@ -7,130 +24,103 @@ function parsePx(style: string, property: string): string | null {
   return Number.isFinite(value) && value > 0 ? String(value) : null;
 }
 
-function attrValue(tag: string, name: string): string | null {
-  const match = tag.match(new RegExp(`\\b${name}\\s*=\\s*(['"])(.*?)\\1`, "i"));
-  return match?.[2] ?? null;
+function materializeImageDimensions(tag: string) {
+  const style = attrValue(tag, "style") || "";
+  let next = tag;
+  const width = attrValue(next, "width") || parsePx(style, "width");
+  const height = attrValue(next, "height") || parsePx(style, "height");
+  if (width) next = setAttr(next, "width", width);
+  if (height) next = setAttr(next, "height", height);
+  return next;
 }
 
-function setAttr(tag: string, name: string, value: string) {
-  const pattern = new RegExp(`\\b${name}\\s*=\\s*(['"])(.*?)\\1`, "i");
-  if (pattern.test(tag)) {
-    return tag.replace(pattern, `${name}="${value}"`);
-  }
-  return tag.replace(/<img\b/i, `<img ${name}="${value}"`);
-}
-
-function readDimension(tag: string, name: "width" | "height") {
-  const raw = attrValue(tag, name);
+function imageWidth(tag: string) {
+  const raw = attrValue(tag, "width");
   if (!raw) return undefined;
   const n = Number.parseFloat(raw);
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
-function blockAlignment(openTag: string): "left" | "center" | "right" | null {
-  const direct = attrValue(openTag, "align")?.trim().toLowerCase();
-  if (direct === "left" || direct === "center" || direct === "right") return direct;
-
-  const style = attrValue(openTag, "style") || "";
-  const styleMatch = style.match(/(?:^|;)\s*text-align\s*:\s*(left|center|right)\b/i);
-  if (!styleMatch) return null;
-  return styleMatch[1].toLowerCase() as "left" | "center" | "right";
+function isTinyImage(tag: string) {
+  const width = imageWidth(tag);
+  return width !== undefined && width <= TINY_MAX_PX;
 }
 
-function materializeParentImageAlignment(html: string) {
-  let output = html;
+function blockAlignment(attrs: string): Align {
+  const pseudoTag = `<x ${attrs}>`;
+  const direct = attrValue(pseudoTag, "align")?.trim().toLowerCase();
+  if (direct === "center" || direct === "right" || direct === "left") return direct;
 
-  for (const tagName of ["p", "div", "figure", "td", "th", "span"]) {
-    const block = new RegExp(`<${tagName}\\b([^>]*)>([\\s\\S]*?)<\\/${tagName}>`, "gi");
-    output = output.replace(block, (full, attrs: string, inner: string) => {
-      const openTag = `<${tagName}${attrs}>`;
-      const align = blockAlignment(openTag);
-      if (!align || !/<img\b/i.test(inner)) return full;
-      const nextInner = inner.replace(/<img\b[^>]*>/gi, (imgTag) =>
-        setAttr(imgTag, "align", align),
+  const style = attrValue(pseudoTag, "style") || "";
+  const matched = style.match(/(?:^|;)\s*text-align\s*:\s*(left|center|right)\b/i)?.[1]?.toLowerCase();
+  return matched === "center" || matched === "right" ? matched : "left";
+}
+
+function bareText(inner: string) {
+  return inner
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<img\b[^>]*>/gi, "")
+    .replace(/<br\b[^>]*\/?\s*>/gi, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/[\s\u00a0]+/g, "")
+    .trim();
+}
+
+function toInlineTag(tag: string) {
+  const attrs = tag.replace(/^<img\b/i, "").replace(/\/?>$/, "").trim();
+  return `<bdt-inline-img ${attrs}></bdt-inline-img>`;
+}
+
+function toBlockTag(tag: string, align: Align) {
+  const aligned = setAttr(tag, "align", align);
+  const attrs = aligned.replace(/^<img\b/i, "").replace(/\/?>$/, "").trim();
+  return `<bdt-block-img ${attrs}></bdt-block-img>`;
+}
+
+function transformPublicationHtml(source: string) {
+  const blockRe = /<(p|figure|div|td|th)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
+
+  let output = source.replace(
+    blockRe,
+    (full, tagName: string, attrs: string, inner: string) => {
+      const prepared = inner.replace(/<img\b[^>]*>/gi, materializeImageDimensions);
+      const images = prepared.match(/<img\b[^>]*>/gi) || [];
+
+      if (images.length === 1 && bareText(prepared) === "") {
+        return toBlockTag(images[0], blockAlignment(attrs));
+      }
+
+      const body = prepared.replace(/<img\b[^>]*>/gi, (tag) =>
+        isTinyImage(tag) ? toInlineTag(tag) : tag,
       );
-      return `<${tagName}${attrs}>${nextInner}</${tagName}>`;
-    });
-  }
+
+      return `<${tagName}${attrs}>${body}</${tagName}>`;
+    },
+  );
+
+  output = output.replace(/<img\b[^>]*>/gi, (tag) => {
+    const prepared = materializeImageDimensions(tag);
+    return isTinyImage(prepared) ? toInlineTag(prepared) : prepared;
+  });
 
   return output;
 }
 
-function materializeImageDimensions(html: string) {
-  return html.replace(/<img\b[^>]*>/gi, (tag) => {
-    const style = attrValue(tag, "style") || "";
-    const width = parsePx(style, "width");
-    const height = parsePx(style, "height");
+export function materializePublicationImageDimensions(html: string): string {
+  const source = String(html || "");
+  if (!source) return "";
 
-    let next = tag;
-    if (width) next = setAttr(next, "width", width);
-    if (height) next = setAttr(next, "height", height);
-    return next;
-  });
-}
+  const cached = processedCache.get(source);
+  if (cached !== undefined) return cached;
 
-function isTinyImage(tag: string) {
-  const width = readDimension(tag, "width");
-  return width !== undefined && width > 0 && width <= 64;
-}
+  const output = transformPublicationHtml(source);
 
-function protectStandaloneTinyImageBlocks(html: string) {
-  const protectedBlocks: string[] = [];
-  let output = html;
-
-  for (const tagName of ["p", "div", "figure", "td", "th"]) {
-    const block = new RegExp(`<${tagName}\\b([^>]*)>([\\s\\S]*?)<\\/${tagName}>`, "gi");
-    output = output.replace(block, (full, attrs: string, inner: string) => {
-      if (!/<img\b/i.test(inner)) return full;
-
-      const withoutComments = inner.replace(/<!--[\s\S]*?-->/g, "");
-      const images = withoutComments.match(/<img\b[^>]*>/gi) || [];
-      if (images.length !== 1) return full;
-
-      const textRemainder = withoutComments
-        .replace(/<img\b[^>]*>/gi, "")
-        .replace(/<br\b[^>]*\/?\s*>/gi, "")
-        .replace(/&nbsp;/gi, " ")
-        .replace(/<[^>]+>/g, "")
-        .replace(/[\s\u00a0]+/g, "")
-        .trim();
-
-      if (textRemainder) return full;
-      if (!isTinyImage(images[0])) return full;
-
-      const token = `__BDT_STANDALONE_TINY_IMAGE_${protectedBlocks.length}__`;
-      protectedBlocks.push(full);
-      return token;
-    });
+  processedCache.set(source, output);
+  if (processedCache.size > CACHE_LIMIT) {
+    const oldest = processedCache.keys().next().value as string | undefined;
+    if (oldest !== undefined) processedCache.delete(oldest);
   }
 
-  return { output, protectedBlocks };
-}
-
-function makeContextualTinyImagesInline(html: string) {
-  const { output: protectedHtml, protectedBlocks } = protectStandaloneTinyImageBlocks(html);
-
-  let next = protectedHtml.replace(/<img\b[^>]*>/gi, (tag) => {
-    if (!isTinyImage(tag)) return tag;
-
-    const attrs = tag
-      .replace(/^<img\b/i, "")
-      .replace(/\/?>$/, "")
-      .trim();
-
-    return `<bdt-inline-img ${attrs}></bdt-inline-img>`;
-  });
-
-  protectedBlocks.forEach((block, index) => {
-    next = next.replace(`__BDT_STANDALONE_TINY_IMAGE_${index}__`, block);
-  });
-
-  return next;
-}
-
-export function materializePublicationImageDimensions(html: string): string {
-  const normalized = materializeImageDimensions(
-    materializeParentImageAlignment(String(html || "")),
-  );
-  return makeContextualTinyImagesInline(normalized);
+  return output;
 }

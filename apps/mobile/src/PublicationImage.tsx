@@ -20,12 +20,15 @@ function parseDimension(value: unknown, baseWidth: number): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return value > 0 ? value : undefined;
   const text = String(value ?? "").trim().toLowerCase();
   if (!text) return undefined;
+
   if (text.endsWith("%")) {
     const n = Number.parseFloat(text.slice(0, -1));
     return Number.isFinite(n) && n > 0 ? (baseWidth * n) / 100 : undefined;
   }
+
   const match = text.match(/([0-9]+(?:\.[0-9]+)?)/);
   if (!match) return undefined;
+
   const n = Number.parseFloat(match[1]);
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
@@ -34,19 +37,16 @@ function parseStyleMeta(styleHint: string | undefined, baseWidth: number) {
   const style = String(styleHint || "");
   const width = style.match(/(?:^|;)\s*width\s*:\s*([^;]+)/i)?.[1];
   const height = style.match(/(?:^|;)\s*height\s*:\s*([^;]+)/i)?.[1];
-  const align = style.match(
-    /(?:^|;)\s*(?:text-align|align-items)\s*:\s*(left|center|right)/i,
-  )?.[1] as Align | undefined;
+
   return {
     width: parseDimension(width, baseWidth),
     height: parseDimension(height, baseWidth),
-    align,
   };
 }
 
-function normalizeBlockAlign(alignHint: unknown, styleAlign?: Align): Align {
-  const raw = String(alignHint || styleAlign || "").trim().toLowerCase();
-  if (raw === "left" || raw === "right") return raw;
+function normalizeBlockAlign(value: unknown): Align {
+  const raw = String(value || "").trim().toLowerCase();
+  if (raw === "right" || raw === "left") return raw;
   return "center";
 }
 
@@ -73,30 +73,25 @@ export default function PublicationImage({
 
   const explicitWidth = parseDimension(widthHint, widthLimit) ?? styleMeta.width;
   const explicitHeight = parseDimension(heightHint, widthLimit) ?? styleMeta.height;
-  const blockAlign = normalizeBlockAlign(alignHint, styleMeta.align);
+  const align = normalizeBlockAlign(alignHint);
 
   const initialRatio =
     explicitWidth && explicitHeight
       ? explicitWidth / explicitHeight
       : localInfo?.width && localInfo?.height
         ? localInfo.width / localInfo.height
-        : 4 / 3;
+        : 1;
 
-  const [ratio, setRatio] = useState(initialRatio > 0 ? initialRatio : 4 / 3);
-  const [intrinsicWidth, setIntrinsicWidth] = useState<number | undefined>(
-    localInfo?.width,
-  );
+  const [ratio, setRatio] = useState(initialRatio > 0 ? initialRatio : 1);
+  const [remoteWidth, setRemoteWidth] = useState<number | undefined>(undefined);
 
   const width = Math.max(
     1,
-    Math.min(widthLimit, explicitWidth ?? intrinsicWidth ?? widthLimit),
+    Math.min(widthLimit, explicitWidth ?? localInfo?.width ?? remoteWidth ?? widthLimit),
   );
   const height = Math.max(
     1,
-    Math.min(
-      explicitHeight ?? width / Math.max(0.2, ratio),
-      widthLimit * 2.4,
-    ),
+    Math.min(explicitHeight ?? width / Math.max(0.1, ratio), widthLimit * 2.5),
   );
 
   const imageStyle = inlineHint
@@ -104,17 +99,18 @@ export default function PublicationImage({
     : { width, height };
 
   const child = localAsset ? (
-    <Image source={localAsset} style={imageStyle} resizeMode="contain" />
+    <Image source={localAsset} style={imageStyle} resizeMode="contain" fadeDuration={0} />
   ) : resolved.kind === "remote" || resolved.kind === "data" ? (
     <Image
       source={{ uri: resolved.uri }}
       style={imageStyle}
       resizeMode="contain"
+      fadeDuration={0}
       onLoad={(event) => {
         const source = event.nativeEvent.source;
         if (source?.width && source?.height) {
           setRatio(source.width / source.height);
-          setIntrinsicWidth(source.width);
+          setRemoteWidth(source.width);
         }
       }}
     />
@@ -126,8 +122,8 @@ export default function PublicationImage({
   return (
     <View
       style={[
-        s.wrap,
-        blockAlign === "left" ? s.left : blockAlign === "right" ? s.right : s.center,
+        s.block,
+        align === "left" ? s.left : align === "right" ? s.right : s.center,
       ]}
     >
       {child}
@@ -136,15 +132,9 @@ export default function PublicationImage({
 }
 
 const s = StyleSheet.create({
-  wrap: {
-    width: "100%",
-    marginVertical: 14,
-    overflow: "hidden",
-  },
+  block: { width: "100%", marginVertical: 12, overflow: "hidden" },
   center: { alignItems: "center" },
   left: { alignItems: "flex-start" },
   right: { alignItems: "flex-end" },
-  inlineImage: {
-    marginVertical: 0,
-  },
+  inlineImage: { marginVertical: 0 },
 });

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   BackHandler,
+  InteractionManager,
   FlatList,
   Image,
   Linking,
@@ -97,6 +98,33 @@ function AppContent() {
     () => filterBooks(books, query, topic, school),
     [books, query, topic, school],
   );
+  // BDT_READER_PREWARM_V13
+  useEffect(() => {
+    if (!publications.length) return;
+
+    let cancelled = false;
+
+    const task = InteractionManager.runAfterInteractions(() => {
+      const queue = publications.filter((item) => !!item.html);
+
+      const warmNext = () => {
+        if (cancelled) return;
+        const item = queue.shift();
+        if (!item) return;
+
+        materializePublicationImageDimensions(item.html || "");
+        setTimeout(warmNext, 0);
+      };
+
+      warmNext();
+    });
+
+    return () => {
+      cancelled = true;
+      task.cancel();
+    };
+  }, [publications]);
+
   async function load() {
     if (!repository) return;
     setRefreshing(true);
@@ -299,6 +327,10 @@ function AppContent() {
         tagName: "bdt-inline-img",
         contentModel: HTMLContentModel.textual,
       }),
+      "bdt-block-img": HTMLElementModel.fromCustomModel({
+        tagName: "bdt-block-img",
+        contentModel: HTMLContentModel.block,
+      }),
     }),
     [],
   );
@@ -320,6 +352,7 @@ function AppContent() {
       return {
         img: (props: any) => renderImage(props, false),
         "bdt-inline-img": (props: any) => renderImage(props, true),
+        "bdt-block-img": (props: any) => renderImage(props, false),
       };
     },
     [width],
