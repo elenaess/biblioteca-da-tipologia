@@ -2273,7 +2273,7 @@ button:active, .button:active, .edit-pencil:active { transform: scale(.98); }
   align-items: stretch;
   overflow: hidden;
 }
-.account-name-editor input {
+.account-page .account-name-editor input {
   flex: 1;
   min-width: 0;
   border: 0;
