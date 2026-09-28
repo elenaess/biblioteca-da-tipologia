@@ -78,7 +78,7 @@ function protectStandaloneTinyImageBlocks(html: string) {
   const protectedBlocks: string[] = [];
   let output = html;
 
-  for (const tagName of ["p", "div", "figure", "td", "th", "span"]) {
+  for (const tagName of ["p", "div", "figure", "td", "th"]) {
     const block = new RegExp(`<${tagName}\\b([^>]*)>([\\s\\S]*?)<\\/${tagName}>`, "gi");
     output = output.replace(block, (full, attrs: string, inner: string) => {
       if (!/<img\b/i.test(inner)) return full;
