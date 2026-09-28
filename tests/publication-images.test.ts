@@ -1,0 +1,4 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { classifyPublicationImageSource, normalizePublicationImageKey } from "../packages/domain/src";
+test("publication image source rules cover local remote data and unsafe paths",()=>{for(const src of ["source-images/jung/image1.png","./source-images/jung/image1.png","/source-images/jung/image1.png","/biblioteca-da-tipologia/source-images/jung/image1.png"])assert.equal(normalizePublicationImageKey(src),"jung/image1.png");assert.equal(normalizePublicationImageKey("../source-images/x.png"),null);assert.deepEqual(classifyPublicationImageSource("https://example.org/a.webp"),{kind:"remote",uri:"https://example.org/a.webp"});const data="data:image/png;base64,aGVsbG8=";assert.deepEqual(classifyPublicationImageSource(data),{kind:"data",uri:data});assert.deepEqual(classifyPublicationImageSource("javascript:alert(1)"),{kind:"missing"});});

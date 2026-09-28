@@ -29,7 +29,8 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-svg": "15.15.4",
     "react-native-url-polyfill": "^3.0.0",
-    "react-native-webview": "13.16.1"
+    "react-native-webview": "13.16.1",
+    "expo-localization": "57.0.2"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",

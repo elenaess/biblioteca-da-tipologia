@@ -15,7 +15,8 @@
     "mobile:install": "npm --prefix apps/mobile install",
     "mobile:start": "npm --prefix apps/mobile start",
     "seed:prepare": "node scripts/prepare-seed.mjs",
-    "reader:bundle": "node scripts/build-mobile-reader.mjs"
+    "reader:bundle": "node scripts/build-mobile-reader.mjs",
+    "images:manifest": "node scripts/generate-mobile-image-assets.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.2",

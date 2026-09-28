@@ -27,6 +27,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
       - run: npm ci
+      - run: npm run images:manifest
       - run: npm run reader:bundle
       - run: npm ci --prefix apps/mobile
       - run: npm run typecheck --prefix apps/mobile

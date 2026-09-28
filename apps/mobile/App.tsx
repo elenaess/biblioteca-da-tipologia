@@ -31,6 +31,8 @@ import {
   driveUrl,
   filterBooks,
   topicLabel,
+  topicLabelLocalized,
+  bookLanguageLabel,
   type Book,
   type Publication,
   type Role,
@@ -47,6 +49,7 @@ import GoogleMark from "./src/GoogleMark";
 import { signInWithGoogleNative, signInWithGoogleBrowserFallback } from "./src/auth/google";
 import ResilientRemoteImage from "./src/ResilientImage";
 import { rewritePublicationHtml } from "./src/images-core";
+import { LocaleProvider, useLocale } from "./src/i18n/LocaleProvider";
 WebBrowser.maybeCompleteAuthSession();
 const colors = [
   "#78513e",
@@ -57,6 +60,7 @@ const colors = [
   "#75674e",
 ];
 function AppContent() {
+  const { locale, setLocale, t, options } = useLocale();
   const [tab, setTab] = useState("library");
   const [books, setBooks] = useState<Book[]>(
     repository ? [] : (seedBooks as Book[]),
@@ -102,7 +106,7 @@ function AppContent() {
       setError("");
     } catch {
       setError(
-        "Não foi possível carregar o acervo. Puxe para tentar novamente.",
+        t("error.collection"),
       );
     } finally {
       setRefreshing(false);
@@ -268,7 +272,7 @@ function AppContent() {
         />
       ) : (
         <View style={s.typeCover}>
-          <Text style={s.coverTopic}>{topicLabel(b.topics[0])}</Text>
+          <Text style={s.coverTopic}>{topicLabelLocalized(b.topics[0], locale)}</Text>
           <View style={s.coverLine} />
           <Text
             numberOfLines={5}
@@ -313,7 +317,7 @@ function AppContent() {
       <StatusBar style="dark" />
       <View style={s.top}>
         {book || publication ? (
-          <Pressable accessibilityLabel="Voltar" onPress={back} style={s.back}>
+          <Pressable accessibilityLabel={t("common.back")} onPress={back} style={s.back}>
             <Ionicons name="arrow-back" size={23} color="#352c25" />
           </Pressable>
         ) : (
@@ -322,7 +326,7 @@ function AppContent() {
           </Pressable>
         )}
         <Text style={s.topLabel}>
-          {reader ? "LEITURA" : book ? "LIVRO" : publication ? "TEXTO" : ""}
+          {reader ? t("mobile.reading") : book ? t("mobile.book") : publication ? t("mobile.text") : ""}
         </Text>
         {canManage(role) && !reader && (book || publication) && (
           <Pressable accessibilityLabel={"Editar " + (book?.title || publication?.title)} style={s.user} onPress={() => book ? openEditor("livro", book.id) : publication && openEditor("texto", publication.id)}>
@@ -330,7 +334,7 @@ function AppContent() {
           </Pressable>
         )}
         <Pressable
-          accessibilityLabel="Minha conta"
+          accessibilityLabel={t("nav.account")}
           onPress={() => switchTab("account")}
           style={s.user}
         >
@@ -340,7 +344,7 @@ function AppContent() {
       {!repository && !book && !publication && (
         <View style={s.preview}>
           <Text style={s.previewText}>
-            Prévia do acervo · dados originais da biblioteca
+            {t("mobile.preview")}
           </Text>
         </View>
       )}
@@ -359,14 +363,14 @@ function AppContent() {
           </View>
           <Text style={s.heading}>{book.title}</Text>
           <Text style={s.subtitle}>
-            {book.authors.join(", ") || "Autoria a conferir"}
+            {book.authors.join(", ") || t("common.authorPending")}
           </Text>
           <View style={s.metadata}>
             {[
-              ["Tradução", book.translators.join(", ") || "Não informada"],
-              ["Publicação", book.published_date || "Não informada"],
-              ["Idioma", book.language || "Não informado"],
-              ["Edição", book.edition || "Não informada"],
+              [t("book.translation"), book.translators.join(", ") || t("common.notProvided")],
+              [t("book.publication"), book.published_date || t("common.notProvided")],
+              [t("book.language"), book.language ? bookLanguageLabel(book.language, locale) : t("common.notProvidedMasc")],
+              [t("book.edition"), book.edition || t("common.notProvided")],
             ].map(([label, value]) => (
               <View key={label} style={{ width: "48%", marginBottom: 20 }}>
                 <Text style={s.metaLabel}>{label}</Text>
@@ -376,7 +380,7 @@ function AppContent() {
           </View>
           <Pressable style={s.primary} onPress={() => setReader(true)}>
             <Ionicons name="book-outline" size={20} color="#fff" />
-            <Text style={s.white}>{readingProgress>0&&readingProgress<.995?`Continuar lendo — ${Math.round(readingProgress*100)}%`:"Começar a leitura"}</Text>
+            <Text style={s.white}>{readingProgress>0&&readingProgress<.995?t("book.continueReading", { progress: Math.round(readingProgress*100) }):t("book.startReading")}</Text>
           </Pressable>
           {book.description ? (
             <Text style={s.body}>{book.description}</Text>
@@ -386,17 +390,17 @@ function AppContent() {
       ) : publication ? (
         <ScrollView contentContainerStyle={s.content}>
           <Text style={s.eyebrow}>
-            {publication.topics.map(topicLabel).join(" · ")}
+            {publication.topics.map((x) => topicLabelLocalized(x, locale)).join(" · ")}
           </Text>
           <Text style={s.heading}>{publication.title}</Text>
           <Text style={s.subtitle}>
-            {publication.author_name || "Texto do acervo"}
+            {publication.author_name || t("publication.archiveText")}
           </Text>
           {publication.source_url && (
             <Pressable
               onPress={() => void Linking.openURL(publication.source_url!)}
             >
-              <Text style={s.link}>Documento original ↗</Text>
+              <Text style={s.link}>{t("common.originalDocument")} ↗</Text>
             </Pressable>
           )}
           <RenderHTML
@@ -439,19 +443,19 @@ function AppContent() {
           }
           ListHeaderComponent={
             <>
-              <Text style={s.eyebrow}>O ACERVO</Text>
-              <Text style={s.heading}>Encontre sua{"\n"}próxima leitura.</Text>
+              <Text style={s.eyebrow}>{t("library.eyebrow")}</Text>
+              <Text style={s.heading}>{t("library.title")}</Text>
               <Text style={s.subtitle}>
-                Perspectivas para compreender a personalidade.
+                {t("library.subtitle")}
               </Text>
               <View style={s.search}>
                 <Ionicons name="search-outline" size={21} color="#7c6b57" />
                 <TextInput
-                  placeholder="Título, autor ou tradutor…"
+                  placeholder={t("library.searchPlaceholder")}
                   value={query}
                   onChangeText={setQuery}
                   style={s.searchInput}
-                  accessibilityLabel="Buscar livros"
+                  accessibilityLabel={t("library.searchLabel")}
                 />
               </View>
               <ScrollView
@@ -459,7 +463,7 @@ function AppContent() {
                 showsHorizontalScrollIndicator={false}
                 style={s.filters}
               >
-                {[{ id: "", label: "Todos" }, ...TOPICS].map((t) => (
+                {[{ id: "", label: t("mobile.all") }, ...TOPICS].map((t) => (
                   <Pressable
                     key={t.id}
                     onPress={() => {
@@ -474,7 +478,7 @@ function AppContent() {
                         topic === t.id && { color: "#fff8ed" },
                       ]}
                     >
-                      {t.label}
+                      {topicLabelLocalized(t.id, locale)}
                     </Text>
                   </Pressable>
                 ))}
@@ -493,15 +497,15 @@ function AppContent() {
                           school === sc && { color: "white" },
                         ]}
                       >
-                        {sc || "Todas as escolas"}
+                        {sc || t("mobile.allSchools")}
                       </Text>
                     </Pressable>
                   ))}
                 </ScrollView>
               )}
               <View style={s.section}>
-                <Text style={s.sectionHeading}>Explore a biblioteca</Text>
-                <Text style={s.count}>{visible.length} livros</Text>
+                <Text style={s.sectionHeading}>{t("library.explore")}</Text>
+                <Text style={s.count}>{visible.length} {visible.length === 1 ? t("library.bookOne") : t("library.bookMany")}</Text>
               </View>
               {error && <Text style={s.error}>{error}</Text>}
             </>
@@ -515,19 +519,19 @@ function AppContent() {
               accessibilityLabel={"Ler " + item.title}
             >
               {cover(item)}
-              <Text style={s.category}>{topicLabel(item.topics[0])}</Text>
+              <Text style={s.category}>{topicLabelLocalized(item.topics[0], locale)}</Text>
               <Text numberOfLines={2} style={s.bookTitle}>
                 {item.title}
               </Text>
               <Text style={s.bookAuthor} numberOfLines={1}>
-                {item.authors.join(", ") || "Autoria a conferir"}
+                {item.authors.join(", ") || t("common.authorPending")}
               </Text>
             </Pressable>
           )}
           ListEmptyComponent={
             <View style={s.empty}>
               <Text style={s.subtitle}>
-                Nenhum livro encontrado para este filtro.
+                {t("mobile.noBooks")}
               </Text>
             </View>
           }
@@ -540,15 +544,15 @@ function AppContent() {
           }
         >
           <Text style={s.eyebrow}>
-            {tab === "texts" ? "FUNDAMENTOS" : "PERSPECTIVAS"}
+            {tab === "texts" ? t("publication.foundations") : t("publication.perspectives")}
           </Text>
           <Text style={s.heading}>
-            {tab === "texts" ? "Leituras" : "Artigos e escritos"}
+            {tab === "texts" ? t("publication.readings") : t("publication.articles")}
           </Text>
           <Text style={s.subtitle}>
             {tab === "texts"
-              ? "Um ponto de partida para cada teoria."
-              : "Ideias e discussões sobre tipologia."}
+              ? t("publication.readingsSubtitle")
+              : t("publication.articlesSubtitle")}
           </Text>
           {publications
             .filter((p) =>
@@ -578,49 +582,63 @@ function AppContent() {
           ) && (
             <View style={s.empty}>
               <Text style={s.subtitle}>
-                As publicações aparecerão aqui quando forem adicionadas.
+                {t("mobile.publicationsSoon")}
               </Text>
             </View>
           )}
         </ScrollView>
       ) : (
         <ScrollView contentContainerStyle={s.content}>
-          <Text style={s.eyebrow}>SEU ESPAÇO</Text>
+          <Text style={s.eyebrow}>{t("account.eyebrow")}</Text>
           <Text style={s.heading}>
-            {user ? "Sua conta" : "Uma biblioteca, muitas perspectivas."}
+            {user ? t("account.title") : t("account.guestTitle")}
           </Text>
           <View style={s.account}>
             {avatarUrl ? <Image source={{ uri: avatarUrl }} style={{ width: 90, height: 90, borderRadius: 45 }} />
               : <Ionicons name="person-circle-outline" size={70} color="#697050" />}
             <Text style={s.pubTitle}>
-              {user ? displayName || "Leitor" : "Bem-vinda à Biblioteca"}
+              {user ? displayName || t("common.reader") : t("account.welcome")}
             </Text>
             <Text style={s.subtitle}>
-              {user?.email || "Entre para participar das conversas."}
+              {user?.email || t("account.guestDescription")}
             </Text>
+            <View style={{ width: "100%", marginBottom: 18 }}>
+              <Text style={{ fontWeight: "700", color: "#352c25", marginBottom: 4 }}>{t("account.language")}</Text>
+              <Text style={{ color: "#766b60", fontSize: 12, marginBottom: 12 }}>{t("account.languageHint")}</Text>
+              <View style={{ flexDirection: "row", justifyContent: "center", gap: 14, flexWrap: "wrap" }}>
+                {options.map((option) => (
+                  <Pressable key={option.locale} onPress={() => setLocale(option.locale)} accessibilityRole="button" accessibilityState={{ selected: locale === option.locale }} style={{ alignItems: "center", gap: 5, minWidth: 72 }}>
+                    <View style={{ width: 48, height: 48, borderRadius: 24, overflow: "hidden", borderWidth: locale === option.locale ? 2 : 1, borderColor: locale === option.locale ? "#914732" : "#d0c2ae", alignItems: "center", justifyContent: "center", backgroundColor: "#fffaf3" }}>
+                      <Text style={{ fontSize: 30, lineHeight: 38 }}>{option.flag}</Text>
+                    </View>
+                    <Text style={{ fontSize: 11, color: locale === option.locale ? "#914732" : "#66594c", fontWeight: locale === option.locale ? "700" : "400" }}>{option.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
             {user ? (
               <>
                 <Pressable style={s.secondary} disabled={uploadingPhoto} onPress={changePhoto}
-                  accessibilityRole="button" accessibilityLabel="Trocar foto de perfil">
-                  <Text>{uploadingPhoto ? "Enviando foto…" : "Trocar foto"}</Text>
+                  accessibilityRole="button" accessibilityLabel={t("account.changePhoto")}>
+                  <Text>{uploadingPhoto ? t("account.uploadingPhoto") : t("account.changePhoto")}</Text>
                 </Pressable>
-                <Text style={s.bookAuthor}>JPEG, PNG ou WebP. Até 3 MB.</Text>
+                <Text style={s.bookAuthor}>{t("account.photoHint")}</Text>
                 <Text style={s.tag}>
                   {role === "owner"
-                    ? "Proprietária"
+                    ? t("account.owner")
                     : role === "admin"
-                      ? "Administrador"
-                      : "Membro"}
+                      ? t("account.admin")
+                      : t("account.member")}
                 </Text>
                 <TextInput
-                  accessibilityLabel="Nome de exibição"
+                  accessibilityLabel={t("account.displayName")}
                   style={s.profileInput}
                   value={profileName}
                   onChangeText={setProfileName}
                   maxLength={80}
                 />
                 <Pressable style={s.secondary} onPress={saveProfile}>
-                  <Text>Salvar nome</Text>
+                  <Text>{t("account.saveName")}</Text>
                 </Pressable>
                 {canManage(role) && (
                   <Pressable
@@ -632,17 +650,17 @@ function AppContent() {
                       );
                     }}
                   >
-                    <Text style={s.white}>Abrir administração</Text>
+                    <Text style={s.white}>{t("account.openAdmin")}</Text>
                   </Pressable>
                 )}
                 <Pressable onPress={() => void client?.auth.signOut()}>
-                  <Text style={s.link}>Sair da conta</Text>
+                  <Text style={s.link}>{t("account.logout")}</Text>
                 </Pressable>
               </>
             ) : (
               <Pressable style={s.googleButton} onPress={login}>
                 <GoogleMark />
-                <Text style={s.googleText}>Continuar com Google</Text>
+                <Text style={s.googleText}>{t("account.continueGoogle")}</Text>
               </Pressable>
             )}
           </View>
@@ -652,10 +670,10 @@ function AppContent() {
       {!reader && (
         <View style={s.bottom}>
           {[
-            ["library", "library-outline", "Biblioteca"],
-            ["texts", "book-outline", "Leituras"],
-            ["articles", "document-text-outline", "Artigos"],
-            ["account", "person-outline", "Conta"],
+            ["library", "library-outline", t("nav.library")],
+            ["texts", "book-outline", t("nav.readings")],
+            ["articles", "document-text-outline", t("nav.articles")],
+            ["account", "person-outline", t("nav.accountShort")],
           ].map(([id, icon, label]) => (
             <Pressable
               key={id}
@@ -687,7 +705,7 @@ function AppContent() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <MotionProvider><AppContent /></MotionProvider>
+      <LocaleProvider><MotionProvider><AppContent /></MotionProvider></LocaleProvider>
     </SafeAreaProvider>
   );
 }
