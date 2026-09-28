@@ -27,6 +27,7 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
           VITE_STRIPE_PUBLISHABLE_KEY: pk_live_51TfPN9A6agt7OxY4j6uL6zY9YthmkD2hwauPOoCUw78lEzgz5qzdOXUEnZ0JqrmAKQveyCBFlEiWJLAAYlKEYXPT00zXx5zNu3
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

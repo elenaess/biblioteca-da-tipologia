@@ -19,6 +19,7 @@ import {
 import seedBooks from "../../../packages/domain/src/books.json";
 import seedPublications from "../../../packages/domain/src/publications.json";
 import { projectConfig } from "../../../packages/domain/src/project-config";
+import { getGoogleIdToken, resolveGoogleWebClientId } from "./google-identity";
 export const client = makeClient(
   import.meta.env.VITE_SUPABASE_URL || projectConfig.supabaseUrl,
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || projectConfig.supabasePublishableKey,
@@ -140,6 +141,26 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       notice("O login ficará disponível após configurar a conexão.");
       return;
     }
+
+    const googleWebClientId = resolveGoogleWebClientId(
+      import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID,
+    );
+
+    if (googleWebClientId) {
+      try {
+        const { token, nonce } = await getGoogleIdToken(googleWebClientId);
+        const { error } = await client.auth.signInWithIdToken({
+          provider: "google",
+          token,
+          nonce,
+        });
+        if (!error) return;
+        console.warn("Google ID token login failed; using OAuth fallback.");
+      } catch {
+        console.warn("Google Identity Services unavailable; using OAuth fallback.");
+      }
+    }
+
     const { error } = await client.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: location.origin + location.pathname },
