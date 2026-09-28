@@ -1,5 +1,7 @@
 function parsePx(style: string, property: string): string | null {
-  const match = style.match(new RegExp(`(?:^|;)\\s*${property}\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)px\\b`, "i"));
+  const match = style.match(
+    new RegExp(`(?:^|;)\\s*${property}\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)px\\b`, "i"),
+  );
   if (!match) return null;
   const value = Number.parseFloat(match[1]);
   return Number.isFinite(value) && value > 0 ? String(value) : null;
@@ -10,28 +12,48 @@ function attrValue(tag: string, name: string): string | null {
   return match?.[2] ?? null;
 }
 
-function addAttr(tag: string, name: string, value: string) {
-  if (new RegExp(`\\b${name}\\s*=`, "i").test(tag)) return tag;
+function setAttr(tag: string, name: string, value: string) {
+  const pattern = new RegExp(`\\b${name}\\s*=\\s*(['"])(.*?)\\1`, "i");
+  if (pattern.test(tag)) {
+    return tag.replace(pattern, `${name}="${value}"`);
+  }
   return tag.replace(/<img\b/i, `<img ${name}="${value}"`);
 }
 
-/**
- * react-native-render-html may consume the style="" attribute before our custom
- * <img> renderer sees tnode.attributes. The imported publications store many
- * tiny symbols only as inline CSS, e.g. width: 10px or width: 20.03px.
- *
- * Copy pixel dimensions into real HTML width/height attributes before parsing,
- * so the native renderer can preserve even 1px-wide images.
- */
-export function materializePublicationImageDimensions(html: string): string {
-  return String(html || "").replace(/<img\b[^>]*>/gi, (tag) => {
+function readDimension(tag: string, name: "width" | "height") {
+  const raw = attrValue(tag, name);
+  if (!raw) return undefined;
+  const n = Number.parseFloat(raw);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+function materializeImageDimensions(html: string) {
+  return html.replace(/<img\b[^>]*>/gi, (tag) => {
     const style = attrValue(tag, "style") || "";
     const width = parsePx(style, "width");
     const height = parsePx(style, "height");
 
     let next = tag;
-    if (width) next = addAttr(next, "width", width);
-    if (height) next = addAttr(next, "height", height);
+    if (width) next = setAttr(next, "width", width);
+    if (height) next = setAttr(next, "height", height);
     return next;
   });
+}
+
+function makeTinyImagesInline(html: string) {
+  return html.replace(/<img\b[^>]*>/gi, (tag) => {
+    const width = readDimension(tag, "width");
+    if (width === undefined || width > 64) return tag;
+
+    const attrs = tag
+      .replace(/^<img\b/i, "")
+      .replace(/\/?>$/, "")
+      .trim();
+
+    return `<bdt-inline-img ${attrs}></bdt-inline-img>`;
+  });
+}
+
+export function materializePublicationImageDimensions(html: string): string {
+  return makeTinyImagesInline(materializeImageDimensions(String(html || "")));
 }

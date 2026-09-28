@@ -11,11 +11,10 @@ type Props = {
   styleHint?: string;
   alignHint?: string;
   alt?: string;
+  inlineHint?: boolean;
 };
 
 type Align = "left" | "center" | "right";
-
-const INLINE_IMAGE_MAX_WIDTH = 64;
 
 function parseDimension(value: unknown, baseWidth: number): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return value > 0 ? value : undefined;
@@ -35,7 +34,9 @@ function parseStyleMeta(styleHint: string | undefined, baseWidth: number) {
   const style = String(styleHint || "");
   const width = style.match(/(?:^|;)\s*width\s*:\s*([^;]+)/i)?.[1];
   const height = style.match(/(?:^|;)\s*height\s*:\s*([^;]+)/i)?.[1];
-  const align = style.match(/(?:^|;)\s*(?:text-align|align-items)\s*:\s*(left|center|right)/i)?.[1] as Align | undefined;
+  const align = style.match(
+    /(?:^|;)\s*(?:text-align|align-items)\s*:\s*(left|center|right)/i,
+  )?.[1] as Align | undefined;
   return {
     width: parseDimension(width, baseWidth),
     height: parseDimension(height, baseWidth),
@@ -43,9 +44,10 @@ function parseStyleMeta(styleHint: string | undefined, baseWidth: number) {
   };
 }
 
-function normalizeAlign(alignHint: unknown, styleAlign?: Align): Align {
+function normalizeBlockAlign(alignHint: unknown, styleAlign?: Align): Align {
   const raw = String(alignHint || styleAlign || "").trim().toLowerCase();
-  return raw === "left" || raw === "right" ? raw : "center";
+  if (raw === "left" || raw === "right") return raw;
+  return "center";
 }
 
 export default function PublicationImage({
@@ -55,15 +57,23 @@ export default function PublicationImage({
   heightHint,
   styleHint,
   alignHint,
+  inlineHint = false,
 }: Props) {
   const widthLimit = Math.max(1, contentWidth);
   const resolved = useMemo(() => classifyPublicationImage(src || ""), [src]);
   const localAsset = resolved.kind === "asset" ? imageAssets[resolved.key] : undefined;
-  const localInfo = useMemo(() => (localAsset ? Image.resolveAssetSource(localAsset) : null), [localAsset]);
-  const styleMeta = useMemo(() => parseStyleMeta(styleHint, widthLimit), [styleHint, widthLimit]);
+  const localInfo = useMemo(
+    () => (localAsset ? Image.resolveAssetSource(localAsset) : null),
+    [localAsset],
+  );
+  const styleMeta = useMemo(
+    () => parseStyleMeta(styleHint, widthLimit),
+    [styleHint, widthLimit],
+  );
+
   const explicitWidth = parseDimension(widthHint, widthLimit) ?? styleMeta.width;
   const explicitHeight = parseDimension(heightHint, widthLimit) ?? styleMeta.height;
-  const align = normalizeAlign(alignHint, styleMeta.align);
+  const blockAlign = normalizeBlockAlign(alignHint, styleMeta.align);
 
   const initialRatio =
     explicitWidth && explicitHeight
@@ -73,15 +83,13 @@ export default function PublicationImage({
         : 4 / 3;
 
   const [ratio, setRatio] = useState(initialRatio > 0 ? initialRatio : 4 / 3);
-  const [intrinsicWidth, setIntrinsicWidth] = useState<number | undefined>(localInfo?.width);
+  const [intrinsicWidth, setIntrinsicWidth] = useState<number | undefined>(
+    localInfo?.width,
+  );
 
-  // Explicit HTML/CSS width always wins — including tiny 1–20px symbols.
   const width = Math.max(
     1,
-    Math.min(
-      widthLimit,
-      explicitWidth ?? intrinsicWidth ?? widthLimit,
-    ),
+    Math.min(widthLimit, explicitWidth ?? intrinsicWidth ?? widthLimit),
   );
   const height = Math.max(
     1,
@@ -91,58 +99,38 @@ export default function PublicationImage({
     ),
   );
 
-  const tiny = explicitWidth !== undefined && width <= INLINE_IMAGE_MAX_WIDTH;
   const imageStyle = { width, height };
 
-  if (localAsset) {
-    // Tiny imported symbols belong to the text flow. Do not put them in a
-    // 100%-wide wrapper or give them publication-image margins.
-    if (tiny) {
-      return <Image source={localAsset} style={imageStyle} resizeMode="contain" />;
-    }
-    return (
-      <View
-        style={[
-          s.wrap,
-          align === "left" ? s.left : align === "right" ? s.right : s.center,
-        ]}
-      >
-        <Image source={localAsset} style={imageStyle} resizeMode="contain" />
-      </View>
-    );
-  }
+  const child = localAsset ? (
+    <Image source={localAsset} style={imageStyle} resizeMode="contain" />
+  ) : resolved.kind === "remote" || resolved.kind === "data" ? (
+    <Image
+      source={{ uri: resolved.uri }}
+      style={imageStyle}
+      resizeMode="contain"
+      onLoad={(event) => {
+        const source = event.nativeEvent.source;
+        if (source?.width && source?.height) {
+          setRatio(source.width / source.height);
+          setIntrinsicWidth(source.width);
+        }
+      }}
+    />
+  ) : null;
 
-  if (resolved.kind === "remote" || resolved.kind === "data") {
-    const remoteImage = (
-      <Image
-        source={{ uri: resolved.uri }}
-        style={imageStyle}
-        resizeMode="contain"
-        onLoad={(event) => {
-          const source = event.nativeEvent.source;
-          if (source?.width && source?.height) {
-            setRatio(source.width / source.height);
-            setIntrinsicWidth(source.width);
-          }
-        }}
-      />
-    );
+  if (!child) return null;
+  if (inlineHint) return child;
 
-    if (tiny) return remoteImage;
-
-    return (
-      <View
-        style={[
-          s.wrap,
-          align === "left" ? s.left : align === "right" ? s.right : s.center,
-        ]}
-      >
-        {remoteImage}
-      </View>
-    );
-  }
-
-  return null;
+  return (
+    <View
+      style={[
+        s.wrap,
+        blockAlign === "left" ? s.left : blockAlign === "right" ? s.right : s.center,
+      ]}
+    >
+      {child}
+    </View>
+  );
 }
 
 const s = StyleSheet.create({
@@ -151,13 +139,7 @@ const s = StyleSheet.create({
     marginVertical: 14,
     overflow: "hidden",
   },
-  center: {
-    alignItems: "center",
-  },
-  left: {
-    alignItems: "flex-start",
-  },
-  right: {
-    alignItems: "flex-end",
-  },
+  center: { alignItems: "center" },
+  left: { alignItems: "flex-start" },
+  right: { alignItems: "flex-end" },
 });

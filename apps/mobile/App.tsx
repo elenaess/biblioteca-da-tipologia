@@ -19,7 +19,7 @@ import * as WebBrowser from "expo-web-browser";
 import * as ImagePicker from "expo-image-picker";
 import { decode } from "base64-arraybuffer";
 import { WebView } from "react-native-webview";
-import RenderHTML from "react-native-render-html";
+import RenderHTML, { HTMLContentModel, HTMLElementModel } from "react-native-render-html";
 import { Ionicons } from "@expo/vector-icons";
 import type { User } from "@supabase/supabase-js";
 import { client, repository } from "./src/client";
@@ -293,9 +293,18 @@ function AppContent() {
     </View>
   );
   const richHtml = useMemo(() => materializePublicationImageDimensions(publication?.html || ""), [publication?.html]);
-      const publicationRenderers = useMemo(
+  const publicationHTMLElementModels = useMemo(
     () => ({
-      img: ({ tnode }: any) => (
+      "bdt-inline-img": HTMLElementModel.fromCustomModel({
+        tagName: "bdt-inline-img",
+        contentModel: HTMLContentModel.textual,
+      }),
+    }),
+    [],
+  );
+      const publicationRenderers = useMemo(
+    () => {
+      const renderImage = ({ tnode }: any, inlineHint = false) => (
         <PublicationImage
           src={tnode?.attributes?.src || ""}
           alt={tnode?.attributes?.alt || ""}
@@ -304,9 +313,15 @@ function AppContent() {
           heightHint={tnode?.attributes?.height}
           styleHint={tnode?.attributes?.style || ""}
           alignHint={tnode?.attributes?.align || ""}
+          inlineHint={inlineHint}
         />
-      ),
-    }),
+      );
+
+      return {
+        img: (props: any) => renderImage(props, false),
+        "bdt-inline-img": (props: any) => renderImage(props, true),
+      };
+    },
     [width],
   );
   const tagsStyles = {
@@ -413,6 +428,7 @@ function AppContent() {
             enableUserAgentStyles={true}
             contentWidth={width - 40}
             source={{ html: richHtml }}
+            customHTMLElementModels={publicationHTMLElementModels}
             renderers={publicationRenderers}
             tagsStyles={tagsStyles}
             ignoredDomTags={["script", "iframe", "object", "embed", "style"]}
