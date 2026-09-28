@@ -12,7 +12,7 @@
     "icon": "./assets/app-icon.png",
     "android": {
       "package": "br.org.bibliotecadatipologia",
-      "versionCode": 5,
+      "versionCode": 6,
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-icon-foreground.png",
         "backgroundColor": "#f4eee4"
@@ -24,6 +24,7 @@
     },
     "plugins": [
       "expo-secure-store",
+      "@react-native-google-signin/google-signin",
       "@config-plugins/react-native-pdf",
       [
         "expo-image-picker",
