@@ -1846,3 +1846,23 @@ button:active, .button:active, .edit-pencil:active { transform: scale(.98); }
     brightness(101%)
     contrast(89%);
 }
+
+/* BDT_LOGO_EXATA_START */
+.desktop-sidebar .desktop-wordmark-link {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+}
+
+.desktop-sidebar .desktop-wordmark-image {
+  display: block;
+  width: 100%;
+  max-width: 218px;
+  height: auto;
+  object-fit: contain;
+  /* A arte continua exatamente a original preta/transparente; só a cor muda. */
+  filter: brightness(0) saturate(100%) invert(93%) sepia(12%) saturate(278%) hue-rotate(343deg) brightness(104%) contrast(92%);
+}
+/* BDT_LOGO_EXATA_END */
