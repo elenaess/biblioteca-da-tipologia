@@ -11,23 +11,32 @@ import { completeGoogleNativeResponse } from "./google-core";
 
 let configuredClientId = "";
 
-function configureNativeGoogle() {
-  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim();
-  if (!webClientId)
-    throw new Error(
-      "Defina EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID com um OAuth Client ID do tipo Web.",
-    );
+function readGoogleWebClientId(): string {
+  const env = [
+    process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    process.env.GOOGLE_WEB_CLIENT_ID,
+  ]
+    .map((x) => x?.trim())
+    .find(Boolean);
+  return env || "";
+}
+
+function configureNativeGoogle(): boolean {
+  const webClientId = readGoogleWebClientId();
+  if (!webClientId) return false;
   if (configuredClientId !== webClientId) {
     GoogleSignin.configure({ webClientId, offlineAccess: false });
     configuredClientId = webClientId;
   }
+  return true;
 }
 
 export async function signInWithGoogleNative(): Promise<"success" | "cancelled"> {
   if (!client) throw new Error("Supabase não está configurado neste build.");
   if (Platform.OS !== "android")
-    throw new Error("O login Google nativo deste pacote está configurado para Android.");
-  configureNativeGoogle();
+    return await signInWithGoogleBrowserFallback();
+  if (!configureNativeGoogle())
+    return await signInWithGoogleBrowserFallback();
   try {
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     const response = await GoogleSignin.signIn();
