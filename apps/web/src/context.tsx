@@ -147,17 +147,34 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     );
 
     if (googleWebClientId) {
+      let googleCredential: { token: string; nonce: string } | null = null;
+
       try {
-        const { token, nonce } = await getGoogleIdToken(googleWebClientId);
-        const { error } = await client.auth.signInWithIdToken({
-          provider: "google",
-          token,
-          nonce,
-        });
-        if (!error) return;
-        console.warn("Google ID token login failed; using OAuth fallback.");
+        googleCredential = await getGoogleIdToken(googleWebClientId);
       } catch {
         console.warn("Google Identity Services unavailable; using OAuth fallback.");
+      }
+
+      if (googleCredential) {
+        try {
+          const { error } = await client.auth.signInWithIdToken({
+            provider: "google",
+            token: googleCredential.token,
+            nonce: googleCredential.nonce,
+          });
+          if (error) {
+            notice(error.message);
+            return;
+          }
+          return;
+        } catch (error) {
+          notice(
+            error instanceof Error
+              ? error.message
+              : "Não foi possível concluir o login com o Google.",
+          );
+          return;
+        }
       }
     }
 

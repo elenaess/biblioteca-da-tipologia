@@ -1,15 +1,22 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { createGoogleNonce, resolveGoogleWebClientId } from "../apps/web/src/google-identity";
+import {
+  createGoogleNonce,
+  hashGoogleNonce,
+  resolveGoogleWebClientId,
+} from "../apps/web/src/google-identity";
 
 test("Google web client id is normalized", () => {
-  assert.equal(resolveGoogleWebClientId("  123.apps.googleusercontent.com  "), "123.apps.googleusercontent.com");
+  assert.equal(
+    resolveGoogleWebClientId("  123.apps.googleusercontent.com  "),
+    "123.apps.googleusercontent.com",
+  );
   assert.equal(resolveGoogleWebClientId(""), "");
   assert.equal(resolveGoogleWebClientId(undefined), "");
 });
 
-test("Google nonce is strong-looking, URL-safe hex, and fresh", () => {
+test("Google nonce is strong-looking and fresh", () => {
   const first = createGoogleNonce();
   const second = createGoogleNonce();
   assert.match(first, /^[a-f0-9]{64}$/);
@@ -17,18 +24,36 @@ test("Google nonce is strong-looking, URL-safe hex, and fresh", () => {
   assert.notEqual(first, second);
 });
 
-test("web login prefers Google ID token and preserves Supabase OAuth fallback", () => {
-  const context = fs.readFileSync("apps/web/src/context.tsx", "utf8");
-  assert.match(context, /getGoogleIdToken/);
-  assert.match(context, /signInWithIdToken/);
-  assert.match(context, /provider:\s*"google"/);
-  assert.match(context, /signInWithOAuth/);
+test("Google receives SHA-256 nonce while Supabase keeps the raw nonce", async () => {
+  assert.equal(
+    await hashGoogleNonce("nonce-test"),
+    "272e7733cf2cf0366831fb61101a4e2911a47e5856f8b8051b576b9cc5f1e371",
+  );
+
+  const helper = fs.readFileSync("apps/web/src/google-identity.ts", "utf8");
+  assert.match(helper, /const hashedNonce = await hashGoogleNonce\(nonce\)/);
+  assert.match(helper, /nonce: hashedNonce/);
+  assert.match(helper, /resolve\(\{ token: result\.token, nonce \}\)/);
 });
 
-test("GitHub Pages injects the existing Google web client id variable", () => {
-  const workflow = fs.readFileSync(".github/workflows/pages.yml", "utf8");
+test("credential rejection does not silently fall back to redirect OAuth", () => {
+  const context = fs.readFileSync("apps/web/src/context.tsx", "utf8");
+
+  assert.match(context, /let googleCredential:/);
+  assert.match(context, /googleCredential = await getGoogleIdToken/);
   assert.match(
-    workflow,
-    /VITE_GOOGLE_WEB_CLIENT_ID:\s*\$\{\{\s*vars\.GOOGLE_WEB_CLIENT_ID\s*\}\}/,
+    context,
+    /if \(googleCredential\) \{[\s\S]*?signInWithIdToken[\s\S]*?if \(error\) \{[\s\S]*?notice\(error\.message\);[\s\S]*?return;[\s\S]*?\}/,
   );
+
+  const idTokenPosition = context.indexOf("signInWithIdToken");
+  const oauthPosition = context.indexOf("signInWithOAuth");
+  assert.ok(idTokenPosition >= 0);
+  assert.ok(oauthPosition > idTokenPosition);
+});
+
+test("web login still preserves OAuth fallback when GIS itself is unavailable", () => {
+  const context = fs.readFileSync("apps/web/src/context.tsx", "utf8");
+  assert.match(context, /signInWithOAuth/);
+  assert.match(context, /Google Identity Services unavailable; using OAuth fallback/);
 });

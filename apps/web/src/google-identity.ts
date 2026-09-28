@@ -46,6 +46,14 @@ export function createGoogleNonce(): string {
   return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
+export async function hashGoogleNonce(nonce: string): Promise<string> {
+  const encoded = new TextEncoder().encode(nonce);
+  const digest = await crypto.subtle.digest("SHA-256", encoded);
+  return Array.from(new Uint8Array(digest), (value) =>
+    value.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
 function googleIdentity(): GoogleIdentityApi | null {
   return window.google?.accounts?.id || null;
 }
@@ -100,6 +108,7 @@ export async function getGoogleIdToken(
   if (!identity) throw new Error("google_identity_unavailable");
 
   const nonce = createGoogleNonce();
+  const hashedNonce = await hashGoogleNonce(nonce);
 
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -124,7 +133,7 @@ export async function getGoogleIdToken(
     identity.cancel?.();
     identity.initialize({
       client_id: normalizedClientId,
-      nonce,
+      nonce: hashedNonce,
       auto_select: false,
       cancel_on_tap_outside: true,
       context: "signin",
