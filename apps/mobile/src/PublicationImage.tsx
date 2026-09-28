@@ -15,6 +15,8 @@ type Props = {
 
 type Align = "left" | "center" | "right";
 
+const INLINE_IMAGE_MAX_WIDTH = 64;
+
 function parseDimension(value: unknown, baseWidth: number): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return value > 0 ? value : undefined;
   const text = String(value ?? "").trim().toLowerCase();
@@ -73,49 +75,69 @@ export default function PublicationImage({
   const [ratio, setRatio] = useState(initialRatio > 0 ? initialRatio : 4 / 3);
   const [intrinsicWidth, setIntrinsicWidth] = useState<number | undefined>(localInfo?.width);
 
+  // Explicit HTML/CSS width always wins — including tiny 1–20px symbols.
   const width = Math.max(
     1,
     Math.min(
       widthLimit,
-      explicitWidth || intrinsicWidth || widthLimit,
+      explicitWidth ?? intrinsicWidth ?? widthLimit,
     ),
   );
   const height = Math.max(
     1,
     Math.min(
-      explicitHeight || width / Math.max(0.2, ratio),
+      explicitHeight ?? width / Math.max(0.2, ratio),
       widthLimit * 2.4,
     ),
   );
 
-  const wrapStyle = [
-    s.wrap,
-    align === "left" ? s.left : align === "right" ? s.right : s.center,
-  ];
+  const tiny = explicitWidth !== undefined && width <= INLINE_IMAGE_MAX_WIDTH;
+  const imageStyle = { width, height };
 
   if (localAsset) {
+    // Tiny imported symbols belong to the text flow. Do not put them in a
+    // 100%-wide wrapper or give them publication-image margins.
+    if (tiny) {
+      return <Image source={localAsset} style={imageStyle} resizeMode="contain" />;
+    }
     return (
-      <View style={wrapStyle}>
-        <Image source={localAsset} style={{ width, height }} resizeMode="contain" />
+      <View
+        style={[
+          s.wrap,
+          align === "left" ? s.left : align === "right" ? s.right : s.center,
+        ]}
+      >
+        <Image source={localAsset} style={imageStyle} resizeMode="contain" />
       </View>
     );
   }
 
   if (resolved.kind === "remote" || resolved.kind === "data") {
+    const remoteImage = (
+      <Image
+        source={{ uri: resolved.uri }}
+        style={imageStyle}
+        resizeMode="contain"
+        onLoad={(event) => {
+          const source = event.nativeEvent.source;
+          if (source?.width && source?.height) {
+            setRatio(source.width / source.height);
+            setIntrinsicWidth(source.width);
+          }
+        }}
+      />
+    );
+
+    if (tiny) return remoteImage;
+
     return (
-      <View style={wrapStyle}>
-        <Image
-          source={{ uri: resolved.uri }}
-          style={{ width, height }}
-          resizeMode="contain"
-          onLoad={(event) => {
-            const source = event.nativeEvent.source;
-            if (source?.width && source?.height) {
-              setRatio(source.width / source.height);
-              setIntrinsicWidth(source.width);
-            }
-          }}
-        />
+      <View
+        style={[
+          s.wrap,
+          align === "left" ? s.left : align === "right" ? s.right : s.center,
+        ]}
+      >
+        {remoteImage}
       </View>
     );
   }

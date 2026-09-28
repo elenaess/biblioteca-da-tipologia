@@ -53,6 +53,7 @@ import { LocaleProvider, useLocale } from "./src/i18n/LocaleProvider";
 import LocaleFlag from "./src/i18n/LocaleFlag";
 import AccountPane from "./src/AccountPane";
 import PublicationImage from "./src/PublicationImage";
+import { materializePublicationImageDimensions } from "./src/publication-html";
 WebBrowser.maybeCompleteAuthSession();
 const colors = [
   "#78513e",
@@ -291,7 +292,7 @@ function AppContent() {
       )}
     </View>
   );
-  const richHtml = publication?.html || "";
+  const richHtml = useMemo(() => materializePublicationImageDimensions(publication?.html || ""), [publication?.html]);
       const publicationRenderers = useMemo(
     () => ({
       img: ({ tnode }: any) => (
