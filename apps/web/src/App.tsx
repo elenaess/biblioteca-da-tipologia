@@ -40,13 +40,17 @@ function Layout() {
   return (
     <div className="app-shell">
       <aside className="sidebar desktop-sidebar">
-          <Link className="header-brand" to="/" aria-label="Biblioteca da Tipologia — início">
-            <img className="header-symbol" src="./brand-symbol.png" alt="" />
-            <span className="header-wordmark" aria-hidden="true">
-              <span className="wordmark-title"><span className="wordmark-initial">B</span>IBLIOTECA</span>
-              <span className="wordmark-subtitle">{"DA TIPOLOGIA".split("").map((letter, i) => <span key={i}>{letter === " " ? "\u00a0" : letter}</span>)}</span>
-            </span>
-          </Link>
+          <Link
+          className="header-brand desktop-wordmark-link"
+          to="/"
+          aria-label="Biblioteca da Tipologia — início"
+        >
+          <img
+            className="desktop-wordmark-image"
+            src="./brand-wordmark.png"
+            alt="Biblioteca da Tipologia"
+          />
+        </Link>
           <div className="sidebar-divider" />
         <nav className="sidebar-nav" aria-label="Navegação lateral">
           <NavLink end to="/">

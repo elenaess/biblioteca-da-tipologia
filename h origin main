@@ -1,0 +1,29 @@
+[1mdiff --git a/apps/web/src/App.tsx b/apps/web/src/App.tsx[m
+[1mindex 2bf22f3..37e2926 100644[m
+[1m--- a/apps/web/src/App.tsx[m
+[1m+++ b/apps/web/src/App.tsx[m
+[36m@@ -40,13 +40,17 @@[m [mfunction Layout() {[m
+   return ([m
+     <div className="app-shell">[m
+       <aside className="sidebar desktop-sidebar">[m
+[31m-          <Link className="header-brand" to="/" aria-label="Biblioteca da Tipologia — início">[m
+[31m-            <img className="header-symbol" src="./brand-symbol.png" alt="" />[m
+[31m-            <span className="header-wordmark" aria-hidden="true">[m
+[31m-              <span className="wordmark-title"><span className="wordmark-initial">B</span>IBLIOTECA</span>[m
+[31m-              <span className="wordmark-subtitle">{"DA TIPOLOGIA".split("").map((letter, i) => <span key={i}>{letter === " " ? "\u00a0" : letter}</span>)}</span>[m
+[31m-            </span>[m
+[31m-          </Link>[m
+[32m+[m[32m          <Link[m
+[32m+[m[32m          className="header-brand desktop-wordmark-link"[m
+[32m+[m[32m          to="/"[m
+[32m+[m[32m          aria-label="Biblioteca da Tipologia — início"[m
+[32m+[m[32m        >[m
+[32m+[m[32m          <img[m
+[32m+[m[32m            className="desktop-wordmark-image"[m
+[32m+[m[32m            src="./brand-wordmark.png"[m
+[32m+[m[32m            alt="Biblioteca da Tipologia"[m
+[32m+[m[32m          />[m
+[32m+[m[32m        </Link>[m
+           <div className="sidebar-divider" />[m
+         <nav className="sidebar-nav" aria-label="Navegação lateral">[m
+           <NavLink end to="/">[m
