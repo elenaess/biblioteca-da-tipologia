@@ -14,6 +14,7 @@ import {
   UserRound,
   ArrowUpRight,
   ShieldCheck,
+Heart,
 } from "lucide-react";
 import { LibraryProvider, useLibrary } from "./context";
 import { canManage } from "../../../packages/domain/src";
@@ -22,6 +23,7 @@ import Library from "./pages/Library";
 import Book from "./pages/Book";
 import { Publications, PublicationDetail } from "./pages/Publications";
 import Account from "./pages/Account";
+const Support = lazy(() => import("./pages/Support")); // BDT_SUPPORT_PAYMENTS_V1
 const SemanticReader = lazy(() => import("./reader/WebReader"));
 const Admin = lazy(() =>
   import("./pages/Admin").then((m) => ({ default: m.Admin })),
@@ -53,6 +55,7 @@ function Layout() {
           <NavLink to="/artigos"><FileText size={20} /><span>{t("nav.articles")}</span></NavLink>
           <NavLink to="/conta"><UserRound size={20} /><span>{t("nav.account")}</span></NavLink>
           {canManage(role) && <NavLink to="/admin"><ShieldCheck size={20} /><span>{t("nav.admin")}</span></NavLink>}
+          <NavLink to="/apoiar"><Heart size={20} /><span>{t("nav.support")}</span></NavLink>
         </nav>
       </aside>
       <div className="main-shell">
@@ -93,6 +96,7 @@ function Layout() {
               <Route path="/artigos" element={<Publications />} />
               <Route path="/texto/:id" element={<PublicationDetail />} />
               <Route path="/conta" element={<Account />} />
+              <Route path="/apoiar" element={<Support />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/livro/:id" element={<BookEditor />} />
               <Route path="/admin/texto/:id" element={<PublicationEditor />} />

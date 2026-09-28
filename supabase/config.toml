@@ -1,0 +1,2 @@
+[functions.create-support-payment]
+verify_jwt = false
