@@ -2170,3 +2170,202 @@ button:active, .button:active, .edit-pencil:active { transform: scale(.98); }
     display: block;
   }
 }
+
+
+/* BDT_ACCOUNT_APP_STYLE_V1 */
+.account-page.account-page-appstyle {
+  max-width: 760px;
+  margin: 25px auto;
+  text-align: left;
+}
+.account-page-appstyle > h1 {
+  margin-bottom: 26px;
+}
+.account-profile-card {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 28px 24px 24px;
+  border: 1px solid #d9ccba;
+  border-radius: 12px;
+  background: #fffaf3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.account-avatar-wrap {
+  position: relative;
+  width: 104px;
+  height: 104px;
+  margin-bottom: 14px;
+}
+.account-avatar.account-avatar-large {
+  width: 104px;
+  height: 104px;
+  margin: 0;
+  border-radius: 50%;
+  background: #eee4d4;
+  color: #697050;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.account-avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.account-avatar-fallback {
+  margin-bottom: 14px !important;
+}
+.account-photo-edit {
+  position: absolute;
+  right: -2px;
+  bottom: 2px;
+  width: 36px;
+  height: 36px;
+  border: 3px solid #fffaf3;
+  border-radius: 50%;
+  background: #914732;
+  color: #fff8ed;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  box-shadow: 0 2px 7px #352c2520;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+.account-photo-edit:hover {
+  background: #7f3d2c;
+  transform: translateY(-1px);
+}
+.account-profile-name {
+  margin: 0 0 8px;
+  font-family: "DM Sans", Arial, sans-serif;
+  font-size: 27px;
+  line-height: 1.25;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+}
+.account-role-badge {
+  margin-bottom: 8px;
+  background: #e6dccb;
+  color: #67543c;
+  border-radius: 5px;
+  padding: 6px 10px;
+}
+.account-profile-email,
+.account-guest-copy {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+.account-name-editor {
+  width: 100%;
+  min-height: 54px;
+  margin: 0 0 9px;
+  border: 1px solid #d3c5b2;
+  border-radius: 8px;
+  background: #fffdf9;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+}
+.account-name-editor input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0 !important;
+  background: transparent;
+  padding: 0 14px;
+  color: var(--ink);
+  font-size: 16px;
+}
+.account-name-editor:focus-within {
+  border-color: #914732;
+  box-shadow: 0 0 0 1px #914732;
+}
+.account-name-confirm {
+  width: 50px;
+  flex: 0 0 50px;
+  border: 0;
+  border-radius: 0;
+  background: #665340;
+  color: #fff8ed;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.account-name-confirm:hover {
+  background: #574637;
+}
+.account-photo-hint {
+  width: 100%;
+  margin-bottom: 18px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: left;
+}
+.account-admin-button {
+  width: 100%;
+  min-height: 50px;
+  margin: 0 0 8px;
+  border-color: #a94b34;
+  background: #a94b34;
+  color: #fff8ed;
+  border-radius: 8px;
+}
+.account-logout-button {
+  min-height: 46px;
+  border: 0;
+  background: transparent;
+  color: #914732;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+}
+.account-logout-button:hover {
+  background: #9147320d;
+  border-radius: 7px;
+}
+.account-google-button {
+  width: 100%;
+  max-width: 380px;
+  border-radius: 7px;
+  padding: 14px 18px;
+}
+.account-guest-card {
+  padding-top: 30px;
+}
+.account-spin {
+  animation: account-spin 0.8s linear infinite;
+}
+@keyframes account-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 620px) {
+  .account-page.account-page-appstyle {
+    margin: 10px -5px 0;
+  }
+  .account-page-appstyle > h1 {
+    margin-bottom: 22px;
+  }
+  .account-profile-card {
+    max-width: none;
+    padding: 24px 20px 22px;
+  }
+  .account-profile-name {
+    font-size: 26px;
+  }
+  .account-name-editor {
+    min-height: 54px;
+  }
+  .account-photo-hint {
+    text-align: center;
+  }
+}
