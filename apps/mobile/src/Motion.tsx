@@ -9,6 +9,8 @@ import {
 
 const ReducedMotion = createContext(false);
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const FAST_MS = 85;
+const PRESS_IN_MS = 65;
 
 export function useReducedMotion() {
   return useContext(ReducedMotion);
@@ -31,6 +33,7 @@ export function MotionPressable({ style, onPressIn, onPressOut, entryDelay, ...p
   const scale = useRef(new Animated.Value(1)).current;
   const translateY = useRef(new Animated.Value(0)).current;
   const entry = useRef(new Animated.Value(entryDelay === undefined ? 1 : 0)).current;
+  const styleIsFunction = typeof style === "function";
   const [pressed, setPressed] = useState(false);
 
   useEffect(() => {
@@ -42,10 +45,11 @@ export function MotionPressable({ style, onPressIn, onPressOut, entryDelay, ...p
     entry.setValue(0);
     Animated.timing(entry, {
       toValue: 1,
-      duration: 140,
+      duration: FAST_MS,
       delay: Math.max(0, entryDelay),
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
+      isInteraction: false,
     }).start();
     return () => entry.stopAnimation();
   }, [entryDelay, reduced, entry]);
@@ -53,21 +57,17 @@ export function MotionPressable({ style, onPressIn, onPressOut, entryDelay, ...p
   function pressIn() {
     scale.stopAnimation();
     translateY.stopAnimation();
-    if (reduced) {
-      scale.setValue(1);
-      translateY.setValue(0);
-      return;
-    }
+    if (reduced) return;
     Animated.parallel([
       Animated.timing(scale, {
-        toValue: 0.965,
-        duration: 75,
+        toValue: 0.972,
+        duration: PRESS_IN_MS,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
       Animated.timing(translateY, {
-        toValue: 1.5,
-        duration: 75,
+        toValue: 1,
+        duration: PRESS_IN_MS,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
@@ -83,16 +83,16 @@ export function MotionPressable({ style, onPressIn, onPressOut, entryDelay, ...p
       return;
     }
     Animated.parallel([
-      Animated.spring(scale, {
+      Animated.timing(scale, {
         toValue: 1,
-        speed: 28,
-        bounciness: 4,
+        duration: FAST_MS,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
-      Animated.spring(translateY, {
+      Animated.timing(translateY, {
         toValue: 0,
-        speed: 30,
-        bounciness: 3,
+        duration: FAST_MS,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
     ]).start();
@@ -102,14 +102,14 @@ export function MotionPressable({ style, onPressIn, onPressOut, entryDelay, ...p
     <AnimatedPressable
       {...props}
       style={[
-        typeof style === "function" ? style({ pressed }) : style,
+        styleIsFunction ? style({ pressed }) : style,
         {
           opacity: entry,
           transform: [
             {
               translateY: Animated.add(
                 translateY,
-                entry.interpolate({ inputRange: [0, 1], outputRange: [7, 0] }),
+                entry.interpolate({ inputRange: [0, 1], outputRange: [5, 0] }),
               ),
             },
             { scale },
@@ -117,12 +117,12 @@ export function MotionPressable({ style, onPressIn, onPressOut, entryDelay, ...p
         },
       ]}
       onPressIn={(e) => {
-        setPressed(true);
+        if (styleIsFunction) setPressed(true);
         pressIn();
         onPressIn?.(e);
       }}
       onPressOut={(e) => {
-        setPressed(false);
+        if (styleIsFunction) setPressed(false);
         pressOut();
         onPressOut?.(e);
       }}
@@ -130,13 +130,7 @@ export function MotionPressable({ style, onPressIn, onPressOut, entryDelay, ...p
   );
 }
 
-export function ScreenTransition({
-  transitionKey,
-  children,
-}: {
-  transitionKey: string;
-  children: React.ReactNode;
-}) {
+export function ScreenTransition({ transitionKey, children }: { transitionKey: string; children: React.ReactNode }) {
   const reduced = useReducedMotion();
   const progress = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -148,9 +142,10 @@ export function ScreenTransition({
     progress.setValue(0);
     Animated.timing(progress, {
       toValue: 1,
-      duration: 145,
+      duration: FAST_MS,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
+      isInteraction: false,
     }).start();
     return () => progress.stopAnimation();
   }, [transitionKey, reduced, progress]);
@@ -159,12 +154,8 @@ export function ScreenTransition({
     <Animated.View
       style={{
         flex: 1,
-        opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }),
-        transform: [
-          {
-            translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [6, 0] }),
-          },
-        ],
+        opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [0.84, 1] }),
+        transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [4, 0] }) }],
       }}
     >
       {children}

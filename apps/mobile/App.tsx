@@ -51,6 +51,8 @@ import ResilientRemoteImage from "./src/ResilientImage";
 import { rewritePublicationHtml } from "./src/images-core";
 import { LocaleProvider, useLocale } from "./src/i18n/LocaleProvider";
 import LocaleFlag from "./src/i18n/LocaleFlag";
+import AccountPane from "./src/AccountPane";
+import PublicationImage from "./src/PublicationImage";
 WebBrowser.maybeCompleteAuthSession();
 const colors = [
   "#78513e",
@@ -289,21 +291,17 @@ function AppContent() {
       )}
     </View>
   );
-  const publicationImageFallback = useMemo(
-    () => Image.resolveAssetSource(require("./assets/image-placeholder.png")).uri,
-    [],
-  );
-  const richHtml = useMemo(
-    () =>
-      rewritePublicationHtml(
-        publication?.html || "",
-        (key) => {
-          const asset = imageAssets[key];
-          return asset ? Image.resolveAssetSource(asset).uri : undefined;
-        },
-        publicationImageFallback,
+  const richHtml = publication?.html || "";
+  const publicationRenderers = useMemo(
+    () => ({
+      img: ({ tnode }: any) => (
+        <PublicationImage
+          src={tnode?.attributes?.src || ""}
+          contentWidth={Math.max(1, width - 40)}
+        />
       ),
-    [publication, publicationImageFallback],
+    }),
+    [width],
   );
   const tagsStyles = {
     body: { color: "#352c25", fontSize: 18, lineHeight: 29 },
@@ -409,6 +407,7 @@ function AppContent() {
             enableUserAgentStyles={true}
             contentWidth={width - 40}
             source={{ html: richHtml }}
+            renderers={publicationRenderers}
             tagsStyles={tagsStyles}
             ignoredDomTags={["script", "iframe", "object", "embed", "style"]}
             renderersProps={{
@@ -464,7 +463,7 @@ function AppContent() {
                 showsHorizontalScrollIndicator={false}
                 style={s.filters}
               >
-                {[{ id: "", label: t("mobile.all") }, ...TOPICS].map((t) => (
+                {[{ id: "", label: t("library.allTopics") }, ...TOPICS].map((t) => (
                   <Pressable
                     key={t.id}
                     onPress={() => {
@@ -479,7 +478,7 @@ function AppContent() {
                         topic === t.id && { color: "#fff8ed" },
                       ]}
                     >
-                      {topicLabelLocalized(t.id, locale)}
+                      {t.id ? topicLabelLocalized(t.id, locale) : t.label}
                     </Text>
                   </Pressable>
                 ))}
@@ -589,83 +588,27 @@ function AppContent() {
           )}
         </ScrollView>
       ) : (
-        <ScrollView contentContainerStyle={s.content}>
-          <Text style={s.eyebrow}>{t("account.eyebrow")}</Text>
-          <Text style={s.heading}>
-            {user ? t("account.title") : t("account.guestTitle")}
-          </Text>
-          <View style={s.account}>
-            {avatarUrl ? <Image source={{ uri: avatarUrl }} style={{ width: 90, height: 90, borderRadius: 45 }} />
-              : <Ionicons name="person-circle-outline" size={70} color="#697050" />}
-            <Text style={s.pubTitle}>
-              {user ? displayName || t("common.reader") : t("account.welcome")}
-            </Text>
-            <Text style={s.subtitle}>
-              {user?.email || t("account.guestDescription")}
-            </Text>
-            <View style={{ width: "100%", marginBottom: 18 }}>
-              <Text style={{ fontWeight: "700", color: "#352c25", marginBottom: 4 }}>{t("account.language")}</Text>
-              <Text style={{ color: "#766b60", fontSize: 12, marginBottom: 12 }}>{t("account.languageHint")}</Text>
-              <View style={{ flexDirection: "row", justifyContent: "center", gap: 14, flexWrap: "wrap" }}>
-                {options.map((option) => (
-                  <Pressable key={option.locale} onPress={() => setLocale(option.locale)} accessibilityRole="button" accessibilityState={{ selected: locale === option.locale }} style={{ alignItems: "center", gap: 5, minWidth: 72 }}>
-                    <View style={{ width: 48, height: 48, borderRadius: 24, overflow: "hidden", borderWidth: locale === option.locale ? 2 : 1, borderColor: locale === option.locale ? "#914732" : "#d0c2ae", alignItems: "center", justifyContent: "center", backgroundColor: "#fffaf3" }}>
-                      <LocaleFlag locale={option.locale} size={44} />
-                    </View>
-                    <Text style={{ fontSize: 11, color: locale === option.locale ? "#914732" : "#66594c", fontWeight: locale === option.locale ? "700" : "400" }}>{option.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-            {user ? (
-              <>
-                <Pressable style={s.secondary} disabled={uploadingPhoto} onPress={changePhoto}
-                  accessibilityRole="button" accessibilityLabel={t("account.changePhoto")}>
-                  <Text>{uploadingPhoto ? t("account.uploadingPhoto") : t("account.changePhoto")}</Text>
-                </Pressable>
-                <Text style={s.bookAuthor}>{t("account.photoHint")}</Text>
-                <Text style={s.tag}>
-                  {role === "owner"
-                    ? t("account.owner")
-                    : role === "admin"
-                      ? t("account.admin")
-                      : t("account.member")}
-                </Text>
-                <TextInput
-                  accessibilityLabel={t("account.displayName")}
-                  style={s.profileInput}
-                  value={profileName}
-                  onChangeText={setProfileName}
-                  maxLength={80}
-                />
-                <Pressable style={s.secondary} onPress={saveProfile}>
-                  <Text>{t("account.saveName")}</Text>
-                </Pressable>
-                {canManage(role) && (
-                  <Pressable
-                    style={s.primary}
-                    onPress={() => {
-                      const web = process.env.EXPO_PUBLIC_WEB_URL || projectConfig.webUrl;
-                      void WebBrowser.openBrowserAsync(
-                        web.replace(/\/$/, "") + "/#/admin",
-                      );
-                    }}
-                  >
-                    <Text style={s.white}>{t("account.openAdmin")}</Text>
-                  </Pressable>
-                )}
-                <Pressable onPress={() => void client?.auth.signOut()}>
-                  <Text style={s.link}>{t("account.logout")}</Text>
-                </Pressable>
-              </>
-            ) : (
-              <Pressable style={s.googleButton} onPress={login}>
-                <GoogleMark />
-                <Text style={s.googleText}>{t("account.continueGoogle")}</Text>
-              </Pressable>
-            )}
-          </View>
-        </ScrollView>
+        <AccountPane
+          user={user}
+          role={role}
+          displayName={displayName}
+          profileName={profileName}
+          avatarUrl={avatarUrl}
+          uploadingPhoto={uploadingPhoto}
+          locale={locale}
+          options={options}
+          t={t}
+          setLocale={setLocale}
+          onProfileNameChange={setProfileName}
+          onChangePhoto={changePhoto}
+          onSaveProfile={saveProfile}
+          onLogin={login}
+          onOpenAdmin={() => {
+            const web = process.env.EXPO_PUBLIC_WEB_URL || projectConfig.webUrl;
+            void WebBrowser.openBrowserAsync(web.replace(/\/$/, "") + "/#/admin");
+          }}
+          onLogout={() => void client?.auth.signOut()}
+        />
       )}
       </ScreenTransition>
       {!reader && (
