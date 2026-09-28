@@ -50,6 +50,7 @@ import { signInWithGoogleNative, signInWithGoogleBrowserFallback } from "./src/a
 import ResilientRemoteImage from "./src/ResilientImage";
 import { rewritePublicationHtml } from "./src/images-core";
 import { LocaleProvider, useLocale } from "./src/i18n/LocaleProvider";
+import LocaleFlag from "./src/i18n/LocaleFlag";
 WebBrowser.maybeCompleteAuthSession();
 const colors = [
   "#78513e",
@@ -609,7 +610,7 @@ function AppContent() {
                 {options.map((option) => (
                   <Pressable key={option.locale} onPress={() => setLocale(option.locale)} accessibilityRole="button" accessibilityState={{ selected: locale === option.locale }} style={{ alignItems: "center", gap: 5, minWidth: 72 }}>
                     <View style={{ width: 48, height: 48, borderRadius: 24, overflow: "hidden", borderWidth: locale === option.locale ? 2 : 1, borderColor: locale === option.locale ? "#914732" : "#d0c2ae", alignItems: "center", justifyContent: "center", backgroundColor: "#fffaf3" }}>
-                      <Text style={{ fontSize: 30, lineHeight: 38 }}>{option.flag}</Text>
+                      <LocaleFlag locale={option.locale} size={44} />
                     </View>
                     <Text style={{ fontSize: 11, color: locale === option.locale ? "#914732" : "#66594c", fontWeight: locale === option.locale ? "700" : "400" }}>{option.label}</Text>
                   </Pressable>
