@@ -292,7 +292,7 @@ function AppContent() {
     </View>
   );
   const richHtml = publication?.html || "";
-    const publicationRenderers = useMemo(
+      const publicationRenderers = useMemo(
     () => ({
       img: ({ tnode }: any) => (
         <PublicationImage

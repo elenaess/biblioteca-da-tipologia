@@ -19,11 +19,19 @@ function normalizePath(value: string) {
   return value.replace(/\\/g, "/").replace(/\/+/g, "/");
 }
 
+function containsTraversal(value: string) {
+  const decoded = normalizePath(safeDecode(value).replace(/[?#].*$/, ""));
+  return decoded.split("/").some((segment) => segment.trim() === "..");
+}
+
 export function normalizePublicationImageKey(src: string): string | null {
   let value = (src || "").trim();
   if (!value) return null;
-
   if (DATA_IMAGE.test(value)) return null;
+
+  // Reject traversal before URL normalization. URL() would otherwise turn
+  // ../source-images/x.png into /source-images/x.png and hide the unsafe input.
+  if (containsTraversal(value)) return null;
 
   value = normalizePath(value);
 
