@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, ArrowUpRight, SlidersHorizontal, LibraryBig, LayoutGrid, Rows3, Pencil } from "lucide-react";
 import { useLibrary } from "../context";
-import { TOPICS, SCHOOLS, filterBooks, topicLabelLocalized, canManage } from "../../../../packages/domain/src";
+import { TOPICS, SCHOOLS, filterBooks, prioritizeBooksByLocale, topicLabelLocalized, canManage } from "../../../../packages/domain/src";
 import { useLocale } from "../i18n/LocaleContext";
 import BookCover from "../components/BookCover";
 export default function Library() {
@@ -12,7 +12,13 @@ export default function Library() {
   const [topic, setTopic] = useState("");
   const [school, setSchool] = useState("");
   const [view, setView] = useState("grid");
-  const visible = useMemo(() => filterBooks(books, q, topic, school), [books, q, topic, school]);
+  const visible = useMemo(
+    () => prioritizeBooksByLocale(
+      filterBooks(books, q, topic, school),
+      locale,
+    ),
+    [books, q, topic, school, locale],
+  );
   useEffect(() => {
     const context = (document as any).modelContext;
     if (!context?.registerTool) return;

@@ -44,6 +44,23 @@ function normalizeLanguageName(raw: string): string {
   return raw.trim().toLowerCase();
 }
 
+function resolveContentLocale(raw: string): Locale | null {
+  const normalized = normalizeLanguageName(raw);
+  return languageAliases[normalized] ?? normalizeLocale(normalized);
+}
+
+export function prioritizeBooksByLocale<T extends { language: string }>(
+  books: readonly T[],
+  locale: Locale,
+): T[] {
+  return [...books].sort((a, b) => {
+    const aMatches = resolveContentLocale(a.language) === locale;
+    const bMatches = resolveContentLocale(b.language) === locale;
+
+    return Number(bMatches) - Number(aMatches);
+  });
+}
+
 export function bookLanguageLabel(raw: string, locale: Locale): string {
   const resolved = languageAliases[normalizeLanguageName(raw)];
   if (!resolved) return raw;
