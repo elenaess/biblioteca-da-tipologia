@@ -11,11 +11,16 @@ export function normalizeLocale(value: string | null | undefined): Locale | null
 }
 
 export function detectSupportedLocale(values: readonly string[]): Locale {
-  for (const value of values) {
-    const locale = normalizeLocale(value);
-    if (locale) return locale;
-  }
-  return "pt";
+  const primary = values.find((value) => value?.trim());
+
+  if (!primary) return "en";
+
+  const lang = primary.trim().toLowerCase().replace("_", "-").split("-")[0];
+
+  if (lang === "pt") return "pt";
+  if (lang === "es") return "es";
+
+  return "en";
 }
 
 export function t(locale: Locale, key: TranslationKey, params: TranslationParams = {}): string {
