@@ -41,6 +41,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   }, []);
   useEffect(() => {
     document.documentElement.lang = locale === "pt" ? "pt-BR" : locale === "en" ? "en-US" : "es-MX";
+    document.title = locale === "en" ? "The Typology Archive" : "Biblioteca da Tipologia";
   }, [locale]);
   const value = useMemo<LocaleContextValue>(() => ({
     locale,
