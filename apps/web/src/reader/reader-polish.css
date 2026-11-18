@@ -1,0 +1,223 @@
+/* Biblioteca da Tipologia — reader polish 2026-11 (web + Android WebView) */
+.semantic-reader {
+  --reader-accent: #985840;
+  --reader-ui: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --reader-reading: Georgia, "Times New Roman", serif;
+  height: 100dvh;
+  font-family: var(--reader-ui);
+}
+.semantic-reader button,
+.semantic-reader select,
+.semantic-reader input { font-family: var(--reader-ui); }
+.semantic-reader button {
+  border-radius: 14px;
+  transition: background-color 130ms ease, color 130ms ease, transform 130ms ease;
+}
+.semantic-reader button:active { transform: scale(.965); }
+.semantic-toolbar {
+  position: relative;
+  z-index: 2;
+  min-height: 66px;
+  padding: 10px clamp(12px, 2.5vw, 28px);
+  gap: 9px;
+  background: var(--reader-bg);
+}
+.semantic-toolbar > button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 9px;
+  border-color: transparent;
+}
+.semantic-toolbar > button:hover,
+.semantic-toolbar > button[aria-expanded="true"] { background: color-mix(in srgb, var(--reader-accent) 12%, transparent); }
+.semantic-toolbar strong { min-width: 0; padding: 0 6px; font-weight: 650; letter-spacing: -.02em; }
+.semantic-toolbar .reader-menu { display: inline-flex; border: 1px solid var(--reader-line-color); }
+.reader-menu span { display: inline !important; font-size: .85rem; font-weight: 600; }
+.reader-settings {
+  position: relative;
+  z-index: 2;
+  align-items: center;
+  background: var(--reader-bg);
+  border-color: var(--reader-line-color);
+  gap: 10px 22px;
+  padding: 12px 18px;
+  animation: bdt-expand 150ms ease-out both;
+}
+.reader-settings select, .reader-settings input { accent-color: var(--reader-accent); }
+.reader-settings select { min-width: 105px; padding: 8px; }
+.reader-workspace { isolation: isolate; }
+/* The index is deliberately off-canvas until requested, including on desktop. */
+.reader-index {
+  display: flex !important;
+  flex-direction: column;
+  position: absolute !important;
+  inset: 0 auto 0 0 !important;
+  z-index: 4;
+  width: min(390px, calc(100vw - 34px)) !important;
+  max-width: 100%;
+  padding: 18px 14px 20px;
+  border-right: 1px solid var(--reader-line-color);
+  background: var(--reader-bg);
+  box-shadow: 12px 0 45px #1e160e1c;
+  transform: translateX(-103%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 160ms cubic-bezier(.2,.8,.2,1), opacity 130ms ease, visibility 160ms;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font: 14px/1.45 var(--reader-ui);
+}
+.reader-index.open {
+  transform: translateX(0);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  animation: none;
+}
+.reader-index-close {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 0 0 10px auto !important;
+  width: auto !important;
+  min-height: 38px !important;
+  padding: 7px 10px !important;
+  color: var(--reader-ink);
+}
+.reader-index-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 0 8px; }
+.reader-index-head h2 { margin: 5px 0 16px; font: 750 20px/1.3 var(--reader-ui); letter-spacing: -.03em; text-transform: none; }
+.reader-index-head span { font-size: 11px; opacity: .65; white-space: nowrap; }
+.reader-toc-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--reader-line-color);
+  background: color-mix(in srgb, var(--reader-bg), var(--reader-ink) 3%);
+  border-radius: 15px;
+  padding: 0 12px;
+  margin-bottom: 14px;
+  min-height: 42px;
+}
+.reader-toc-search input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: 14px var(--reader-ui);
+  color: var(--reader-ink);
+}
+.reader-index ul { padding: 0; margin: 0; list-style: none; }
+.reader-index ul ul { margin: 3px 0 4px 13px; padding-left: 8px; border-left: 1px solid var(--reader-line-color); }
+.reader-index li { min-width: 0; margin: 1px 0; }
+.reader-toc-row { display: flex; align-items: center; gap: 3px; min-width: 0; border-radius: 13px; }
+.reader-index .reader-toc-row > .toc-jump {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  display: block;
+  text-align: left;
+  border-radius: 11px;
+  padding: 11px 10px;
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  font-weight: 500;
+}
+.reader-index .reader-toc-row > .toc-toggle {
+  width: 32px;
+  min-width: 32px;
+  height: 36px;
+  min-height: 36px;
+  padding: 5px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 10px;
+}
+.reader-index .reader-toc-row > .toc-jump[aria-current="location"] {
+  color: var(--reader-accent);
+  background: color-mix(in srgb, var(--reader-accent) 12%, transparent);
+  font-weight: 750;
+}
+.reader-scrim {
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  background: #18130f65 !important;
+  z-index: 3 !important;
+  animation: bdt-fade 130ms ease-out both;
+}
+.reader-scroll { min-width: 0; padding: clamp(10px, 2vw, 28px) 0 35px; -webkit-overflow-scrolling: touch; }
+.reader-scroll > section { min-width: 0; border-color: color-mix(in srgb, var(--reader-line-color) 70%, transparent); }
+.reader-document {
+  width: min(calc(100% - 44px), var(--reader-width));
+  padding: clamp(18px, 2vw, 32px) 0 62px;
+  font-family: var(--reader-reading);
+  line-height: var(--reader-line);
+  text-align: left;
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  font-kerning: normal;
+}
+.reader-document h1, .reader-document h2, .reader-document h3, .reader-document h4, .reader-document h5, .reader-document h6 {
+  font-family: var(--reader-ui);
+  letter-spacing: -.02em;
+  line-height: 1.3;
+  overflow-wrap: break-word;
+  hyphens: none;
+  scroll-margin-top: 42px;
+}
+.reader-document h1 { font-size: clamp(1.65em, 5vw, 2.05em); }
+.reader-document h2 { font-size: 1.55em; }
+.reader-document h3 { font-size: 1.22em; }
+.reader-document p { margin: 0 0 1.15em; }
+.reader-document li { margin-bottom: .5em; }
+.reader-document ul, .reader-document ol { padding-left: 1.35em; }
+.reader-document img { max-width: 100%; object-fit: contain; border-radius: 4px; }
+.reader-document table { width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: .88em; }
+.reader-document pre, .reader-document code { overflow-wrap: anywhere; }
+.semantic-progress {
+  background: var(--reader-bg);
+  padding: 9px clamp(14px, 2vw, 24px) max(10px, env(safe-area-inset-bottom));
+  gap: 4px 12px;
+  font: 12px var(--reader-ui);
+}
+.semantic-progress span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .8; }
+.semantic-progress span:nth-child(2) { font-variant-numeric: tabular-nums; font-weight: 750; }
+.semantic-progress progress { height: 3px; }
+.reader-footnote { z-index: 5; border-radius: 18px; box-shadow: 0 16px 48px #0002; }
+@keyframes bdt-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes bdt-expand { from { opacity: .5; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
+@media (max-width: 767px) {
+  .semantic-toolbar { padding: 7px 10px; gap: 4px; min-height: 58px; }
+  .semantic-toolbar strong { font-size: 13px; }
+  .semantic-toolbar > button { min-width: 39px; min-height: 39px; padding: 7px; }
+  .semantic-toolbar .reader-menu { min-width: 39px; }
+  .reader-menu span { display: none !important; }
+  .reader-index { width: min(350px, calc(100vw - 32px)) !important; }
+  .reader-settings { padding: 10px 14px; gap: 8px; max-height: 43vh; overflow: auto; }
+  .reader-settings label { min-width: 0; width: 100%; justify-content: space-between; }
+  .reader-document { width: calc(100% - 36px); padding-top: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .semantic-reader *, .semantic-reader *::before, .semantic-reader *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+/* EPUB navigation lists belong in the searchable drawer, not on top of the prose. */
+.reader-document nav[role="doc-toc"], .reader-document nav[epub\:type="toc"] { display: none; }
+.reader-toc-empty { padding: 12px; opacity: .75; font: 14px var(--reader-ui); }

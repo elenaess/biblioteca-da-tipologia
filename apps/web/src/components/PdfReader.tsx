@@ -6,6 +6,7 @@ import {
   type RenderTask,
 } from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { ExternalLink } from "lucide-react";
 import { repository } from "../context";
 import type { Book } from "../../../../packages/domain/src";
 GlobalWorkerOptions.workerSrc = workerUrl;
@@ -146,7 +147,7 @@ export default function PdfReader({ book }: { book: Book }) {
         </select>
         {url && (
           <button className="button secondary" onClick={() => void open()}>
-            Abrir arquivo ↗
+            Abrir arquivo <ExternalLink size={15} />
           </button>
         )}
       </div>

@@ -1,5 +1,7 @@
 import React from "react";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
+import { Animated } from "react-native";
+import { useReducedMotion } from "./Motion";
 
 /*
 ISC License
@@ -29,11 +31,30 @@ const symbols: Record<string, React.ReactNode> = {
 };
 
 export default function TabIcon({ tab, active }: { tab: string; active: boolean }) {
+  const reduced = useReducedMotion();
+  const progress = React.useRef(new Animated.Value(active ? 1 : 0)).current;
+  React.useEffect(() => {
+    if (reduced) { progress.setValue(active ? 1 : 0); return; }
+    const animation = Animated.spring(progress, {
+      toValue: active ? 1 : 0,
+      stiffness: 410,
+      damping: 21,
+      mass: 0.65,
+      useNativeDriver: true,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [active, reduced, progress]);
   return (
-    <Svg width={21} height={21} viewBox="0 0 24 24" fill="none"
-      stroke={active ? "#914732" : "#877965"} strokeWidth={active ? 2.4 : 2}
-      strokeLinecap="round" strokeLinejoin="round" accessible={false}>
-      {symbols[tab]}
-    </Svg>
+    <Animated.View style={{ transform: [
+      { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, -2] }) },
+      { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) },
+    ] }}>
+      <Svg width={21} height={21} viewBox="0 0 24 24" fill="none"
+        stroke={active ? "#914732" : "#877965"} strokeWidth={active ? 2.35 : 2}
+        strokeLinecap="round" strokeLinejoin="round" accessible={false}>
+        {symbols[tab]}
+      </Svg>
+    </Animated.View>
   );
 }

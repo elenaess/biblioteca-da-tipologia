@@ -1,0 +1,70 @@
+/* Biblioteca da Tipologia — navigacao suave e editorial, 2026-11 */
+:root { --bdt-motion-fast: 140ms; --bdt-motion-ease: cubic-bezier(.2,.8,.2,1); }
+.desktop-sidebar .sidebar-nav a,
+.site-header .header-nav a {
+  position: relative;
+  isolation: isolate;
+  border-radius: 18px;
+  font-weight: 550;
+  transition: color var(--bdt-motion-fast) ease, background-color var(--bdt-motion-fast) ease,
+    transform var(--bdt-motion-fast) var(--bdt-motion-ease);
+}
+.desktop-sidebar .sidebar-nav a:hover,
+.site-header .header-nav a:hover { transform: translateX(2px); }
+.desktop-sidebar .sidebar-nav a.active {
+  background: #f3e7d5 !important;
+  color: #8f4e37 !important;
+  box-shadow: inset 3px 0 0 #a65e44;
+}
+.desktop-sidebar .sidebar-nav a.active svg,
+.site-header .header-nav a.active svg { transform: scale(1.04); }
+.desktop-sidebar .sidebar-nav a svg,
+.site-header .header-nav a svg { flex: 0 0 auto; transition: transform var(--bdt-motion-fast) var(--bdt-motion-ease); }
+.site-header { backdrop-filter: saturate(110%); }
+.site-header .header-nav a { border-radius: 17px; }
+.site-header .header-nav a.active { background: #ece0d1 !important; }
+.site-header .account-link { border-radius: 999px; }
+.route-content { animation: bdt-page-in 155ms var(--bdt-motion-ease) both; }
+.books .book-card, .publication-card, .button, button { -webkit-tap-highlight-color: transparent; }
+.books .book-card:hover { transform: translateY(-2px); }
+@keyframes bdt-page-in { from { opacity: .75; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@media (max-width: 650px) {
+  .site-header .header-nav {
+    left: 10px; right: 10px; bottom: max(8px, env(safe-area-inset-bottom));
+    width: auto; border: 1px solid #dacdbd; border-radius: 24px;
+    background: #fffaf3ee; box-shadow: 0 6px 28px #352b221b;
+    overflow: hidden; padding: 5px;
+  }
+  .site-header .header-nav a { border-radius: 18px; padding: 8px 4px; min-height: 54px; }
+  .site-header .header-nav a.active { background: #f0e0d0 !important; }
+  .site-header .header-nav a:hover { transform: none; }
+  .main-shell { padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-content { animation: none !important; }
+  .desktop-sidebar .sidebar-nav a, .site-header .header-nav a,
+  .desktop-sidebar .sidebar-nav a svg, .site-header .header-nav a svg {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+/* O PDF original segue a mesma linguagem do leitor semântico. */
+.reader .reader-toolbar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+.reader .reader-toolbar strong { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pdf-viewer { background: #efe7db; }
+.pdf-controls {
+  position: sticky; top: 0; z-index: 2;
+  gap: 8px; background: #faf5ec; border-bottom: 1px solid #dbcfbd;
+}
+.pdf-controls .button, .pdf-controls select, .pdf-controls input { min-height: 39px; border-radius: 13px; }
+.pdf-controls .button { display: inline-flex; align-items: center; gap: 6px; }
+.pdf-canvas { padding: clamp(12px, 3vw, 25px); }
+.pdf-canvas canvas { border-radius: 3px; box-shadow: 0 10px 35px #3b2d251c; }
+@media (max-width: 650px) {
+  .reader .reader-toolbar { padding: 8px 12px; }
+  .reader .reader-toolbar strong { font-size: 13px; }
+  .pdf-controls { padding: 10px 9px; gap: 7px; justify-content: center; }
+  .pdf-controls label { flex: 1; justify-content: center; }
+  .pdf-controls .button { font-size: 12px; padding: 8px 10px; }
+  .pdf-canvas { padding: 10px 6px; }
+}

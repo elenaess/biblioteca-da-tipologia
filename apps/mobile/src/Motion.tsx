@@ -9,8 +9,8 @@ import {
 
 const ReducedMotion = createContext(false);
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-const FAST_MS = 72;
-const PRESS_IN_MS = 48;
+const FAST_MS = 145;
+const PRESS_IN_MS = 76;
 
 export function useReducedMotion() {
   return useContext(ReducedMotion);

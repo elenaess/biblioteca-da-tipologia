@@ -11,7 +11,9 @@ import {
   readingProgress,
 } from "../../../../packages/domain/src/reader";
 import { sanitizeReaderHtml } from "../book-parser/sanitizer";
+import { ArrowLeft, List, Settings2, ExternalLink, X, Search, ChevronDown } from "lucide-react";
 import "./reader.css";
+import "./reader-polish.css";
 interface Props {
   bookId: string;
   title: string;
@@ -51,6 +53,7 @@ export default function BookReader({
       return { size: 18, line: 1.75, width: 760, theme: "paper" };
     }
   });
+  const [tocQuery, setTocQuery] = useState("");
   const viewport = useRef<HTMLDivElement>(null),
     heights = useRef<Record<string, number>>({}),
     pending = useRef(new Set<string>()),
@@ -381,7 +384,7 @@ export default function BookReader({
           }}
           aria-label="Fechar leitor"
         >
-          ←
+          <ArrowLeft size={20} />
         </button>
         <button
           className="reader-menu"
@@ -389,14 +392,14 @@ export default function BookReader({
           aria-controls="reader-index"
           onClick={() => setDrawer(!drawer)}
         >
-          ☰ <span>Índice</span>
+          <List size={20} /> <span>Índice</span>
         </button>
         <strong>{tocActive?.title || current?.title || title}</strong>
         <button aria-expanded={settings} onClick={() => setSettings(!settings)}>
-          Aa
+          <Settings2 size={20} />
         </button>
         <button onClick={original} title="Abrir arquivo original">
-          ↗
+          <ExternalLink size={20} />
         </button>
       </header>
       {settings && (
@@ -456,6 +459,7 @@ export default function BookReader({
           />
         )}
         <nav
+          aria-hidden={!drawer}
           id="reader-index"
           className={"reader-index " + (drawer ? "open" : "")}
           aria-label="Conteúdo do livro"
@@ -464,12 +468,25 @@ export default function BookReader({
             className="reader-index-close"
             onClick={() => setDrawer(false)}
           >
-            Fechar ×
+            <X size={17} /> <span>Fechar</span>
           </button>
-          <h2>Conteúdo</h2>
+          <div className="reader-index-head">
+            <h2>Sumário</h2>
+            <span>{manifest?.chapters.length || 0} capítulos</span>
+          </div>
+          <label className="reader-toc-search">
+            <Search size={16} aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Buscar no sumário"
+              placeholder="Buscar seção ou capítulo"
+              value={tocQuery}
+              onChange={(event) => setTocQuery(event.target.value)}
+            />
+          </label>
           {manifest && (
             <Toc
-              items={
+              items={filterToc(
                 manifest.toc.length
                   ? manifest.toc
                   : manifest.chapters.map((c) => ({
@@ -477,8 +494,10 @@ export default function BookReader({
                       title: c.title,
                       level: 1,
                       chapterId: c.id,
-                    }))
-              }
+                    })),
+                tocQuery,
+              )}
+              forceOpen={Boolean(tocQuery.trim())}
               current={current?.id || ""}
               section={section}
               go={navigate}
@@ -569,7 +588,7 @@ export default function BookReader({
           aria-label="Nota de rodapé"
         >
           <button onClick={() => setNote(null)} aria-label="Fechar nota">
-            ×
+            <X size={17} />
           </button>
           <div dangerouslySetInnerHTML={{ __html: note.html }} />
           <button onClick={() => navigate(note.chapter, note.anchor)}>
@@ -580,58 +599,65 @@ export default function BookReader({
     </section>
   );
 }
+
+function filterToc(items: TocItem[], query: string): TocItem[] {
+  const clean = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase();
+  const needle = clean(query.trim());
+  if (!needle) return items;
+  return items.flatMap((item) => {
+    if (clean(item.title).includes(needle)) return [item];
+    const children = filterToc(item.children || [], needle);
+    return children.length ? [{ ...item, children }] : [];
+  });
+}
 function Toc({
-  items,
-  current,
-  section,
-  go,
+  items, current, section, go, forceOpen = false,
 }: {
   items: TocItem[];
   current: string;
   section: string;
   go: (c: string, a?: string) => void;
+  forceOpen?: boolean;
 }) {
+  if (!items.length) return <p className="reader-toc-empty">Nenhuma seção encontrada.</p>;
+  return <ul className="reader-toc-list">{items.map((item) => (
+    <TocNode key={item.id} item={item} current={current} section={section} go={go} forceOpen={forceOpen} />
+  ))}</ul>;
+}
+function TocNode({
+  item, current, section, go, forceOpen,
+}: {
+  item: TocItem;
+  current: string;
+  section: string;
+  go: (c: string, a?: string) => void;
+  forceOpen: boolean;
+}) {
+  const [expanded, setExpanded] = useState(item.chapterId === current);
+  const children = item.children || [];
+  useEffect(() => {
+    if (item.chapterId === current) setExpanded(true);
+  }, [item.chapterId, current]);
+  const selected = item.chapterId === current && (!item.anchor || item.anchor === section);
   return (
-    <ul>
-      {items.map((item) => (
-        <li key={item.id}>
-          {item.children?.length ? (
-            <details open={item.chapterId === current || undefined}>
-              <summary>
-                <button
-                  aria-current={
-                    item.chapterId === current &&
-                    (!item.anchor || item.anchor === section)
-                      ? "location"
-                      : undefined
-                  }
-                  onClick={() => go(item.chapterId, item.anchor)}
-                >
-                  {item.title}
-                </button>
-              </summary>
-              <Toc
-                items={item.children}
-                current={current}
-                section={section}
-                go={go}
-              />
-            </details>
-          ) : (
-            <button
-              aria-current={
-                item.chapterId === current &&
-                (!item.anchor || item.anchor === section)
-                  ? "location"
-                  : undefined
-              }
-              onClick={() => go(item.chapterId, item.anchor)}
-            >
-              {item.title}
-            </button>
-          )}
-        </li>
-      ))}
-    </ul>
+    <li>
+      <div className="reader-toc-row">
+        <button type="button" className="toc-jump" aria-current={selected ? "location" : undefined}
+          onClick={() => go(item.chapterId, item.anchor)} title={item.title}>
+          {item.title}
+        </button>
+        {children.length > 0 && (
+          <button type="button" className="toc-toggle"
+            aria-label={(expanded || forceOpen ? "Recolher " : "Expandir ") + item.title}
+            aria-expanded={expanded || forceOpen}
+            onClick={() => setExpanded((value) => !value)}>
+            <ChevronDown size={17} style={{ transform: expanded || forceOpen ? "none" : "rotate(-90deg)" }} />
+          </button>
+        )}
+      </div>
+      {children.length > 0 && (expanded || forceOpen) && (
+        <Toc items={children} current={current} section={section} go={go} forceOpen={forceOpen} />
+      )}
+    </li>
   );
 }

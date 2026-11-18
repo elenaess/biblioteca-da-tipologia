@@ -39,7 +39,7 @@ export default function Library() {
     <header className="page-heading"><div><div className="eyebrow">{t("library.eyebrow")}</div><h1>{t("library.title")}</h1><p>{t("library.subtitle")}</p></div>
       <span className="collection-stamp"><LibraryBig size={23}/><strong>{books.length}</strong><span>{t("library.booksInCollection")}</span></span>
     </header>
-    <div className="search-bar"><Search size={21}/><input aria-label={t("library.searchLabel")} placeholder={t("library.searchPlaceholder")} value={q} onChange={(e)=>setQ(e.target.value)}/><kbd>⌕</kbd></div>
+    <div className="search-bar"><Search size={21}/><input aria-label={t("library.searchLabel")} placeholder={t("library.searchPlaceholder")} value={q} onChange={(e)=>setQ(e.target.value)}/></div>
     <div className="topic-tabs" aria-label={t("library.allTopics")}><button className={!topic?"active":""} onClick={()=>{setTopic("");setSchool("")}}>{t("library.allTopics")}</button>
       {TOPICS.map((x)=><button key={x.id} className={topic===x.id?"active":""} onClick={()=>{setTopic(x.id);setSchool("")}}>{topicLabelLocalized(x.id, locale)}</button>)}
     </div>

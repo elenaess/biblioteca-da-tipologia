@@ -21,7 +21,7 @@ import * as ImagePicker from "expo-image-picker";
 import { decode } from "base64-arraybuffer";
 import { WebView } from "react-native-webview";
 import RenderHTML, { HTMLContentModel, HTMLElementModel } from "react-native-render-html";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "./src/AppIcon";
 import type { User } from "@supabase/supabase-js";
 import { client, repository } from "./src/client";
 import TabIcon from "./src/TabIcon";
@@ -360,12 +360,12 @@ function AppContent() {
     img: { maxWidth: width - 40 },
   };
   return (
-    <SafeAreaView style={s.safe} edges={["top", "left", "right"]}>
+    <SafeAreaView style={s.safe} edges={["top", "left", "right", "bottom"]}>
       <StatusBar style="dark" />
       <View style={s.top}>
         {book || publication ? (
           <Pressable accessibilityLabel={t("common.back")} onPress={back} style={s.back}>
-            <Ionicons name="arrow-back" size={23} color="#352c25" />
+            <AppIcon name="arrow-back" size={23} color="#352c25" />
           </Pressable>
         ) : (
           <Pressable accessibilityLabel="Biblioteca da Tipologia — início" onPress={() => switchTab("library")}>
@@ -377,7 +377,7 @@ function AppContent() {
         </Text>
         {canManage(role) && !reader && (book || publication) && (
           <Pressable accessibilityLabel={"Editar " + (book?.title || publication?.title)} style={s.user} onPress={() => book ? openEditor("livro", book.id) : publication && openEditor("texto", publication.id)}>
-            <Ionicons name="pencil-outline" size={19} color="#8f4632" />
+            <AppIcon name="pencil-outline" size={19} color="#8f4632" />
           </Pressable>
         )}
         <Pressable
@@ -385,7 +385,7 @@ function AppContent() {
           onPress={() => switchTab("account")}
           style={s.user}
         >
-          <Ionicons name="person-outline" size={20} color="#594a3b" />
+          <AppIcon name="person-outline" size={20} color="#594a3b" />
         </Pressable>
       </View>
       {!repository && !book && !publication && (
@@ -426,7 +426,7 @@ function AppContent() {
             ))}
           </View>
           <Pressable style={s.primary} onPress={() => setReader(true)}>
-            <Ionicons name="book-outline" size={20} color="#fff" />
+            <AppIcon name="book-outline" size={20} color="#fff" />
             <Text style={s.white}>{readingProgress>0&&readingProgress<.995?t("book.continueReading", { progress: Math.round(readingProgress*100) }):t("book.startReading")}</Text>
           </Pressable>
           {book.description ? (
@@ -504,7 +504,7 @@ function AppContent() {
                 {t("library.subtitle")}
               </Text>
               <View style={s.search}>
-                <Ionicons name="search-outline" size={21} color="#7c6b57" />
+                <AppIcon name="search-outline" size={21} color="#7c6b57" />
                 <TextInput
                   placeholder={t("library.searchPlaceholder")}
                   value={query}
@@ -629,7 +629,7 @@ function AppContent() {
                   <Text style={s.pubTitle}>{p.title}</Text>
                   <Text style={s.bookAuthor}>{p.summary}</Text>
                 </View>
-                <Ionicons name="arrow-forward" size={20} color="#914732" />
+                <AppIcon name="arrow-forward" size={20} color="#914732" />
               </Pressable>
             ))}
           {!publications.some((p) =>
@@ -941,15 +941,22 @@ const s = StyleSheet.create({
   },
   bottom: {
     flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 12,
+    marginBottom: 8,
+    paddingVertical: 7,
     backgroundColor: "#fffaf2",
-    borderTopWidth: 1,
+    borderWidth: 1,
     borderColor: "#ded2bf",
-    paddingTop: 12,
-    paddingBottom: 24,
+    borderRadius: 26,
+    elevation: 5,
+    shadowColor: "#392b23",
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
   },
-  navItem: { flex: 1, alignItems: "center", gap: 5 },
-  tabSymbol: { borderRadius: 14, paddingHorizontal: 12, paddingVertical: 3 },
-  tabSymbolActive: { backgroundColor: "#efe1d2" },
+  navItem: { flex: 1, alignItems: "center", gap: 5, paddingVertical: 7, borderRadius: 18 },
+  tabSymbol: { borderRadius: 16, paddingHorizontal: 14, paddingVertical: 5 },
+  tabSymbolActive: { backgroundColor: "#f1e0d1" },
   navText: { fontWeight: "500", fontSize: 11, color: "#877965" },
   error: { padding: 15, color: "#963d2c" },
 });

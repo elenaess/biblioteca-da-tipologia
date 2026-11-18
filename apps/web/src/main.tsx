@@ -4,6 +4,7 @@ import App from "./App";
 import { LocaleProvider } from "./i18n/LocaleContext";
 import "./styles.css";
 import "./i18n/i18n.css";
+import "./interface-polish.css";
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <LocaleProvider><App /></LocaleProvider>

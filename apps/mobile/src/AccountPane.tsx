@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "./AppIcon";
 import type { User } from "@supabase/supabase-js";
 import {
   canManage,
@@ -81,7 +81,7 @@ export default function AccountPane({
                 <Image source={{ uri: avatarUrl }} style={s.avatar} />
               ) : (
                 <View style={[s.avatar, s.avatarFallback]}>
-                  <Ionicons name="person-outline" size={44} color="#697050" />
+                  <AppIcon name="person-outline" size={44} color="#697050" />
                 </View>
               )}
               <Pressable
@@ -94,7 +94,7 @@ export default function AccountPane({
                 {uploadingPhoto ? (
                   <ActivityIndicator size="small" color="#fff8ed" />
                 ) : (
-                  <Ionicons name="pencil" size={16} color="#fff8ed" />
+                  <AppIcon name="pencil" size={16} color="#fff8ed" />
                 )}
               </Pressable>
             </View>
@@ -110,7 +110,7 @@ export default function AccountPane({
                 onPress={() => void onSaveProfile()}
                 style={s.confirmName}
               >
-                <Ionicons name="checkmark" size={20} color="#fff8ed" />
+                <AppIcon name="checkmark" size={20} color="#fff8ed" />
               </Pressable>
               <TextInput
                 accessibilityLabel={t("account.displayName")}
@@ -127,20 +127,20 @@ export default function AccountPane({
 
             {canManage(role) ? (
               <Pressable style={s.adminButton} onPress={onOpenAdmin}>
-                <Ionicons name="shield-checkmark-outline" size={19} color="#fff8ed" />
+                <AppIcon name="shield-checkmark-outline" size={19} color="#fff8ed" />
                 <Text style={s.adminText}>{t("account.openAdmin")}</Text>
               </Pressable>
             ) : null}
 
             <Pressable onPress={onLogout} style={s.logoutButton}>
-              <Ionicons name="log-out-outline" size={19} color="#914732" />
+              <AppIcon name="log-out-outline" size={19} color="#914732" />
               <Text style={s.logoutText}>{t("account.logout")}</Text>
             </Pressable>
           </>
         ) : (
           <>
             <View style={[s.avatar, s.avatarFallback]}>
-              <Ionicons name="person-outline" size={44} color="#697050" />
+              <AppIcon name="person-outline" size={44} color="#697050" />
             </View>
             <Text style={s.name}>{t("account.welcome")}</Text>
             <Text style={s.email}>{t("account.guestDescription")}</Text>
