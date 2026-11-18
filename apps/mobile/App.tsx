@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   BackHandler,
-  InteractionManager,
+  ActivityIndicator,
   FlatList,
   Image,
   Linking,
@@ -24,6 +24,7 @@ import RenderHTML, { HTMLContentModel, HTMLElementModel } from "react-native-ren
 import { Ionicons } from "@expo/vector-icons";
 import type { User } from "@supabase/supabase-js";
 import { client, repository } from "./src/client";
+import TabIcon from "./src/TabIcon";
 import Comments from "./src/Comments";
 import {
   TOPICS,
@@ -70,7 +71,7 @@ function AppContent() {
   const [books, setBooks] = useState<Book[]>(
     repository ? [] : (seedBooks as Book[]),
   );
-  const [publications, setPublications] = useState<Publication[]>(
+  const [publications, setPublications] = useState<Omit<Publication, "html">[]>(
     repository ? [] : (seedPublications as Publication[]),
   );
   const [query, setQuery] = useState("");
@@ -79,7 +80,7 @@ function AppContent() {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role | null>(null);
   const [book, setBook] = useState<Book | null>(null);
-  const [publication, setPublication] = useState<Publication | null>(null);
+  const [publication, setPublication] = useState<Omit<Publication, "html"> | null>(null);
   const [reader, setReader] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
   useEffect(()=>{let alive=true;setReadingProgress(0);if(book&&repository&&!reader){const r=new ReaderRepository(repository.client);void Promise.all([r.manifest(book.id),r.position(book.id).catch(()=>null),SecureStore.getItemAsync('reading.'+(user?.id||'guest')+'.'+book.id)]).then(([m,remote,raw])=>{let saved=remote;try{const local=JSON.parse(raw||'null');if(local&&(!saved||local.updatedAt>saved.updatedAt))saved=local;}catch{}if(alive&&saved?.revision===m?.revision)setReadingProgress(saved?.progress||0);}).catch(()=>{});}return()=>{alive=false;};},[book?.id,user?.id,reader]);
@@ -98,54 +99,46 @@ function AppContent() {
     () => filterBooks(books, query, topic, school),
     [books, query, topic, school],
   );
-  // BDT_READER_PREWARM_V13
+  const [attempt, setAttempt] = useState(0);
+  const [body, setBody] = useState<{
+    item: typeof publication; attempt: number; html?: string; failed?: boolean;
+  }>();
   useEffect(() => {
-    if (!publications.length) return;
-
-    let cancelled = false;
-
-    const task = InteractionManager.runAfterInteractions(() => {
-      const queue = publications.filter((item) => !!item.html);
-
-      const warmNext = () => {
-        if (cancelled) return;
-        const item = queue.shift();
-        if (!item) return;
-
-        materializePublicationImageDimensions(item.html || "");
-        setTimeout(warmNext, 0);
-      };
-
-      warmNext();
-    });
-
-    return () => {
-      cancelled = true;
-      task.cancel();
-    };
-  }, [publications]);
-
+    if (!publication || !repository) return;
+    let active = true;
+    repository.publication(publication.id).then(
+      item => { if (active) setBody({ item: publication, attempt, html: item.html }); },
+      () => { if (active) setBody({ item: publication, attempt, failed: true }); },
+    );
+    return () => { active = false; };
+  }, [publication, attempt]);
+  const currentBody = body?.item === publication && body?.attempt === attempt ? body : undefined;
+  const html = repository ? currentBody?.html :
+    (seedPublications as Publication[]).find(p => p.id === publication?.id)?.html;
+  const catalogueVersion = useRef(0);
   async function load() {
     if (!repository) return;
+    const version = ++catalogueVersion.current;
     setRefreshing(true);
     try {
       const [b, p] = await Promise.all([
         repository.books(),
-        repository.publications(),
+        repository.publicationSummaries(),
       ]);
+      if (version !== catalogueVersion.current) return;
       setBooks(b);
       setPublications(p);
       setError("");
     } catch {
+      if (version !== catalogueVersion.current) return;
       setError(
         t("error.collection"),
       );
     } finally {
-      setRefreshing(false);
+      if (version === catalogueVersion.current) setRefreshing(false);
     }
   }
   useEffect(() => {
-    void load();
     if (!client) return;
     let alive = true,
       sequence = 0,
@@ -155,6 +148,7 @@ function AppContent() {
       const current = ++sequence;
       if (previousId !== u?.id) {
         previousId = u?.id;
+        catalogueVersion.current++;
         setBook(null);
         setPublication(null);
         setReader(false);
@@ -165,8 +159,10 @@ function AppContent() {
       setAvatarUrl(null);
       setProfileName(u?.user_metadata.full_name || "");
       setRole(null);
+      if (u) await client!.rpc("claim_owner");
+      if (!alive || current !== sequence) return;
+      const catalogue = load();
       if (u) {
-        await client!.rpc("claim_owner");
         const [r, p] = await Promise.all([
           repository!.role().catch(() => null),
           repository!.profile(u.id).catch(() => null),
@@ -180,16 +176,14 @@ function AppContent() {
           setAvatarUrl(p?.avatar_url || null);
         }
       }
-      if (alive && current === sequence) await load();
+      await catalogue;
     };
-    void client.auth
-      .getSession()
-      .then(({ data }) => sync(data.session?.user || null));
     const { data } = client.auth.onAuthStateChange((_event, session) => {
       setTimeout(() => void sync(session?.user || null), 0);
     });
     return () => {
       alive = false;
+      catalogueVersion.current++;
       data.subscription.unsubscribe();
     };
   }, []);
@@ -320,7 +314,7 @@ function AppContent() {
       )}
     </View>
   );
-  const richHtml = useMemo(() => materializePublicationImageDimensions(publication?.html || ""), [publication?.html]);
+  const richHtml = useMemo(() => materializePublicationImageDimensions(html || ""), [html]);
   const publicationHTMLElementModels = useMemo(
     () => ({
       "bdt-inline-img": HTMLElementModel.fromCustomModel({
@@ -456,7 +450,13 @@ function AppContent() {
               <Text style={s.link}>{t("common.originalDocument")} ↗</Text>
             </Pressable>
           )}
-          <RenderHTML
+          {currentBody?.failed ? (
+            <Pressable onPress={() => setAttempt(n => n + 1)}>
+              <Text style={s.link}>{t("common.retry")}</Text>
+            </Pressable>
+          ) : html === undefined ? (
+            <ActivityIndicator accessibilityLabel={t("common.loading")} color="#914732" />
+          ) : <RenderHTML
             enableCSSInlineProcessing={true}
             enableUserAgentStyles={true}
             contentWidth={width - 40}
@@ -473,7 +473,7 @@ function AppContent() {
               },
               img: { enableExperimentalPercentWidth: true },
             }}
-          />
+          />}
           <Comments
             kind="publication"
             id={publication.id}
@@ -669,11 +669,11 @@ function AppContent() {
       {!reader && (
         <View style={s.bottom}>
           {[
-            ["library", "library-outline", t("nav.library")],
-            ["texts", "book-outline", t("nav.readings")],
-            ["articles", "document-text-outline", t("nav.articles")],
-            ["account", "person-outline", t("nav.accountShort")],
-          ].map(([id, icon, label]) => (
+            ["library", t("nav.library")],
+            ["texts", t("nav.readings")],
+            ["articles", t("nav.articles")],
+            ["account", t("nav.accountShort")],
+          ].map(([id, label]) => (
             <Pressable
               key={id}
               accessibilityRole="tab"
@@ -681,11 +681,9 @@ function AppContent() {
               onPress={() => switchTab(id)}
               style={s.navItem}
             >
-              <Ionicons
-                name={icon as any}
-                size={22}
-                color={tab === id ? "#914732" : "#877965"}
-              />
+              <View style={[s.tabSymbol, tab === id && s.tabSymbolActive]}>
+                <TabIcon tab={id} active={tab === id} />
+              </View>
               <Text
                 style={[
                   s.navText,
@@ -752,7 +750,7 @@ const s = StyleSheet.create({
     marginBottom: 14,
   },
   heading: {
-    fontFamily: "serif",
+    fontWeight: "700", letterSpacing: -0.5,
     fontSize: 32,
     lineHeight: 39,
     color: "#352c25",
@@ -794,7 +792,7 @@ const s = StyleSheet.create({
     alignItems: "baseline",
     marginBottom: 22,
   },
-  sectionHeading: { fontSize: 20, fontFamily: "serif", color: "#352c25" },
+  sectionHeading: { fontSize: 20, fontWeight: "700", letterSpacing: -0.5, color: "#352c25" },
   count: { fontSize: 12, color: "#766b60" },
   bookCard: { flex: 1, maxWidth: "47%", marginBottom: 28 },
   cover: {
@@ -919,7 +917,7 @@ const s = StyleSheet.create({
   pubTitle: {
     fontSize: 22,
     lineHeight: 29,
-    fontFamily: "serif",
+    fontWeight: "700", letterSpacing: -0.5,
     color: "#352c25",
     marginVertical: 10,
   },
@@ -950,6 +948,8 @@ const s = StyleSheet.create({
     paddingBottom: 24,
   },
   navItem: { flex: 1, alignItems: "center", gap: 5 },
-  navText: { fontSize: 10, color: "#877965" },
+  tabSymbol: { borderRadius: 14, paddingHorizontal: 12, paddingVertical: 3 },
+  tabSymbolActive: { backgroundColor: "#efe1d2" },
+  navText: { fontWeight: "500", fontSize: 11, color: "#877965" },
   error: { padding: 15, color: "#963d2c" },
 });

@@ -30,7 +30,7 @@ export const client = makeClient(
 export const repository = client ? new Repository(client) : null;
 interface State {
   books: Book[];
-  publications: Publication[];
+  publications: Omit<Publication, "html">[];
   user: User | null;
   role: Role | null;
   profile: Profile | null;
@@ -49,7 +49,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [books, setBooks] = useState<Book[]>(
     client ? [] : (seedBooks as Book[]),
   );
-  const [publications, setPublications] = useState<Publication[]>(
+  const [publications, setPublications] = useState<Omit<Publication, "html">[]>(
     client ? [] : (seedPublications as Publication[]),
   );
   const [user, setUser] = useState<User | null>(null);
@@ -73,7 +73,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     try {
       const [b, p] = await Promise.all([
         repository.books(),
-        repository.publications(),
+        repository.publicationSummaries(),
       ]);
       if (version === loadVersion.current) {
         setBooks(b);
@@ -105,8 +105,10 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         setPublications([]);
         setLoading(true);
       }
+      if (u) await client!.rpc("claim_owner");
+      if (!active || current !== sequence) return;
+      const catalogue = reload();
       if (u) {
-        await client!.rpc("claim_owner");
         try {
           const [role, profile] = await Promise.all([
             repository!.role(),
@@ -120,11 +122,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
           notice("Não foi possível verificar suas permissões.");
         }
       }
-      if (active && current === sequence) await reload();
+      await catalogue;
     };
-    void client.auth
-      .getSession()
-      .then(({ data }) => sync(data.session?.user ?? null));
     const { data } = client.auth.onAuthStateChange((_event, session) => {
       setTimeout(() => void sync(session?.user ?? null), 0);
     });

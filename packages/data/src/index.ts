@@ -117,6 +117,21 @@ export class Repository {
       })),
     );
   }
+  async publicationSummaries(): Promise<Omit<Publication, "html">[]> {
+    const { data, error } = await this.client.from("publications")
+      .select("id,title,kind,summary,topics,schools,author_name,published_at,status,source_url,created_at")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data;
+  }
+
+  async publication(id: string): Promise<Publication> {
+    const { data, error } = await this.client.from("publications")
+      .select("*").eq("id", id).single();
+    if (error) throw error;
+    return { ...data, html: await this.signedHtml(data.html) } as Publication;
+  }
+
   async publications() {
     const { data, error } = await this.client
       .from("publications")

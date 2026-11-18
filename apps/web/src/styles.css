@@ -2369,3 +2369,21 @@ button:active, .button:active, .edit-pencil:active { transform: scale(.98); }
     text-align: center;
   }
 }
+
+/* Interface do acervo. A tipografia editorial fica nas capas e na leitura. */
+.sidebar-nav, .header-nav, .account-link, .button, .topic-tabs button,
+.page-heading h1, .publication-card h2 {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.page-heading h1, .publication-card h2 { letter-spacing: -.025em; }
+.site-header .header-nav a, .desktop-sidebar .sidebar-nav a {
+  border-radius: 14px;
+  font-weight: 500;
+}
+.site-header .header-nav a.active, .desktop-sidebar .sidebar-nav a.active {
+  background: #efe1d2;
+  color: var(--accent);
+  font-weight: 700;
+}
+.header-nav svg, .sidebar-nav svg { stroke-width: 2; }
+.header-nav .active svg, .sidebar-nav .active svg { stroke-width: 2.4; }

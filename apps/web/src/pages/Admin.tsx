@@ -16,6 +16,7 @@ import {
 import { ReaderRepository } from "../../../../packages/data/src/reader";
 import type { NormalizedBook } from "../../../../packages/domain/src/reader";
 import { bookFormat, parseBook } from "../book-parser";
+import { usePublication } from "../usePublication";
 import RichEditor from "../components/RichEditor";
 import { sanitizeHtml } from "../rich-content";
 export function AdminGate({ children }: { children: React.ReactNode }) {
@@ -567,20 +568,22 @@ function BookEditorForm() {
 const starter =
   '<h2>Um novo olhar sobre a personalidade</h2><p>Comece a escrever aqui. Selecione um trecho para aplicar <strong>negrito</strong>, <em>itálico</em> ou mudar o alinhamento.</p><p style="text-align:center">Uma ideia também pode ocupar o centro.</p><p style="text-align:justify">Use o botão de imagem para inserir uma foto entre os parágrafos. Você também pode colar imagens diretamente no editor.</p>';
 export function PublicationEditor({ demo = false }: { demo?: boolean }) {
-  const { loading, publications } = useLibrary();
+  const { loading } = useLibrary();
   const { id } = useParams();
-  if (loading) return <p>Carregando texto…</p>;
-  if (!demo && id !== "novo" && !publications.some((p) => p.id === id))
+  const { item, pending, failed, retry } = usePublication(demo || id === "novo" ? undefined : id);
+  if (loading || pending) return <p>Carregando texto…</p>;
+  if (failed) return <button onClick={retry}>Tentar carregar o texto novamente</button>;
+  if (!demo && id !== "novo" && !item)
     return <p>Publicação não encontrada.</p>;
-  return <PublicationEditorForm key={id || "demo"} demo={demo} />;
+  return <PublicationEditorForm key={id || "demo"} demo={demo} initial={item} />;
 }
-function PublicationEditorForm({ demo = false }: { demo?: boolean }) {
+function PublicationEditorForm({ demo = false, initial }: { demo?: boolean; initial?: Publication }) {
   const { id } = useParams();
-  const { publications, reload, notice } = useLibrary();
+  const { reload, notice } = useLibrary();
   const nav = useNavigate();
   const [p, setP] = useState<Publication>(
     () =>
-      publications.find((x) => x.id === id) || {
+      initial || {
         id: crypto.randomUUID(),
         title: demo ? "Seu espaço de escrita" : "",
         kind: "article",
