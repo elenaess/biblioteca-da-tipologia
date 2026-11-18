@@ -20,7 +20,6 @@
 .site-header .header-nav a.active svg { transform: scale(1.04); }
 .desktop-sidebar .sidebar-nav a svg,
 .site-header .header-nav a svg { flex: 0 0 auto; transition: transform var(--bdt-motion-fast) var(--bdt-motion-ease); }
-.site-header { backdrop-filter: saturate(110%); }
 .site-header .header-nav a { border-radius: 17px; }
 .site-header .header-nav a.active { background: #ece0d1 !important; }
 .site-header .account-link { border-radius: 999px; }
